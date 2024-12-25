@@ -8,15 +8,10 @@ export interface ChartData {
 }
 
 export interface Indicator {
-  id: string;
   name: string;
-  type: 'MA' | 'RSI' | 'MOMENTUM' | 'BOLLINGER';
+  function: string;
   enabled: boolean;
-  parameters: {
-    period?: number;
-    type?: 'simple' | 'exponential';
-    standardDeviations?: number;
-  };
+  params: Record<string, number>;
 }
 
 export interface Strategy {

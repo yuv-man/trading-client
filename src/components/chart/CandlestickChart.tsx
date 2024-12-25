@@ -1,15 +1,7 @@
-import React from 'react';
-import {
-  VictoryChart,
-  VictoryAxis,
-  VictoryCandlestick,
-  VictoryTooltip,
-  VictoryLine,
-  VictoryScatter,
-} from 'victory';
-import { format } from 'date-fns';
+import React, { useEffect, useRef } from 'react';
+import { createChart, IChartApi, ISeriesApi, CandlestickData } from 'lightweight-charts';
 import type { ChartData } from '../../types/trading';
-import { ChartMarkers } from './ChartMarkers';
+import '../css/CandlestickChart.css';
 
 interface CandlestickChartProps {
   data: ChartData[];
@@ -22,6 +14,10 @@ interface CandlestickChartProps {
   indicators?: {
     sma?: { period: number; data: { time: string; value: number }[] };
     rsi?: { data: { time: string; value: number }[] };
+    macd?: { data: { time: string; value: number }[] };
+    stoch?: { data: { time: string; value: number }[] };
+    adx?: { data: { time: string; value: number }[] };
+    bb?: { data: { time: string; value: number }[] };
   };
     peaksTroughs?: {
     time: string;
@@ -59,135 +55,105 @@ export function CandlestickChart({
     showRSI: true
   }
 }: CandlestickChartProps) {
-  const chartData = data.map(d => ({
-    x: new Date(d.time),
-    open: d.open,
-    high: d.high,
-    low: d.low,
-    close: d.close,
-  }));
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 
-  const currentPrice = chartData && chartData.length > 0 ? chartData[chartData.length - 1].close : null;
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    // Initialize chart
+    const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 500,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333',
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' },
+      },
+    });
+
+    // Create candlestick series
+    const candlestickSeries = chart.addCandlestickSeries({
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: true,
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+    });
+
+    // Format data for lightweight-charts
+    const chartData: CandlestickData[] = data.map(d => ({
+      time: d.time,
+      open: d.open,
+      high: d.high,
+      low: d.low,
+      close: d.close,
+    }));
+
+    candlestickSeries.setData(chartData);
+
+    // Add SMA if enabled
+    if (indicators?.sma && visibilitySettings.showSMA) {
+      const smaSeries = chart.addLineSeries({
+        color: '#2196F3',
+        lineWidth: 1,
+      });
+      smaSeries.setData(
+        indicators.sma.data.map(d => ({
+          time: d.time,
+          value: d.value,
+        }))
+      );
+    }
+
+    // Add markers for peaks and troughs
+    if (visibilitySettings.showPeaksTroughs && peaksTroughs) {
+      candlestickSeries.setMarkers(
+        peaksTroughs.map(pt => ({
+          time: pt.time,
+          position: pt.type === 'peak' ? 'aboveBar' : 'belowBar',
+          color: pt.type === 'peak' ? '#4CAF50' : '#F44336',
+          shape: 'circle',
+          size: 1,
+        }))
+      );
+    }
+
+    // Store references
+    chartRef.current = chart;
+    candlestickSeriesRef.current = candlestickSeries;
+
+    // Handle resize
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
+  }, [data, indicators, peaksTroughs, visibilitySettings]);
 
   return (
     <div className="w-full h-[500px]">
-      <div className="flex justify-between items-center mb-4 px-4">
+      <div className="chart-header">
         <h2 className="text-xl font-semibold">{symbol}</h2>
-        <span className="text-lg">${currentPrice?.toFixed(2)}</span>
+        <span className="text-md">
+          ${data[data.length - 1]?.close.toFixed(2)}
+        </span>
       </div>
-      
-      <VictoryChart 
-        domainPadding={{ x: 25 }}
-        scale={{ x: 'time' }}
-      >
-        <VictoryAxis
-          tickFormat={(t) => format(t, 'MM/dd')}
-          style={{
-            tickLabels: { fontSize: 10, padding: 5 },
-          }}
-        />
-        <VictoryAxis
-          dependentAxis
-          tickFormat={(t) => `$${t}`}
-          style={{
-            tickLabels: { fontSize: 10, padding: 5 },
-          }}
-        />
-        <VictoryCandlestick
-          candleColors={{ positive: '#26a69a', negative: '#ef5350' }}
-          data={chartData}
-          style={{
-            data: {
-              stroke: ({ datum }) =>
-                datum.close > datum.open ? '#26a69a' : '#ef5350',
-              strokeWidth: 1,
-            },
-          }}
-          labels={({ datum }) => [
-            `Date: ${format(datum.x, 'yyyy-MM-dd HH:mm')}`,
-            `Open: $${datum.open.toFixed(2)}`,
-            `High: $${datum.high.toFixed(2)}`,
-            `Low: $${datum.low.toFixed(2)}`,
-            `Close: $${datum.close.toFixed(2)}`,
-          ].join('\n')}
-          labelComponent={
-            <VictoryTooltip
-              cornerRadius={5}
-              pointerLength={0}
-              flyoutStyle={{
-                fill: 'rgba(255, 255, 255, 0.95)',
-                stroke: '#ccc',
-                strokeWidth: 1,
-              }}
-              style={{
-                fontSize: 12,
-                fontFamily: 'monospace',
-              }}
-              flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
-            />
-          }
-          events={[
-            {
-              target: "data",
-              eventHandlers: {
-                onMouseOver: () => ({
-                  target: "labels",
-                  mutation: () => ({ active: true })
-                }),
-                onMouseOut: () => ({
-                  target: "labels",
-                  mutation: () => ({ active: false })
-                })
-              }
-            }
-          ]}
-        />
-
-        {indicators?.sma && visibilitySettings.showSMA && (
-          <VictoryLine
-            data={indicators.sma.data.map(d => ({
-              x: new Date(d.time),
-              y: d.value
-            }))}
-            style={{ data: { stroke: "#2196F3", strokeWidth: 1 } }}
-          />
-        )}
-
-        {visibilitySettings.showPeaksTroughs && peaksTroughs && (
-          <VictoryScatter
-            data={peaksTroughs.map(pt => ({
-              x: new Date(pt.time),
-              y: pt.price,
-              type: pt.type
-            }))}
-            style={{
-              data: {
-                fill: ({ datum }) => datum.type === 'peak' ? "#4CAF50" : "#F44336",
-                size: 5
-              }
-            }}
-          />
-        )}
-
-        {visibilitySettings.showTrends && trends && (
-          <VictoryLine
-            data={trends.map(trend => [
-              { x: new Date(trend.startTime), y: trend.startPrice },
-              { x: new Date(trend.endTime), y: trend.endPrice }
-            ])}
-            style={{
-              data: { 
-                stroke: ({ datum }) => datum.type === 'uptrend' ? "#4CAF50" : "#F44336",
-                strokeWidth: 1,
-                strokeDasharray: "5,5"
-              }
-            }}
-          />
-        )}
-
-        {visibilitySettings.showTrades && trades && <ChartMarkers trades={trades} />}
-        
-      </VictoryChart>
+      <div ref={chartContainerRef} />
     </div>
   );
 }

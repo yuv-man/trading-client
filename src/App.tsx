@@ -3,7 +3,7 @@ import './App.css';
 import { Chart } from './components/Chart';
 import { ControlPanel } from './components/ControlPanel';
 import { BacktestResults } from './components/BacktestResults';
-import type { BacktestResult, ChartData, Indicator, Strategy } from './types/trading';
+import type { BacktestResult, ChartData, Strategy } from './types/trading';
 import { registerStrategy, runBacktest, getStockData } from './utils/api';
 
 // Sample data - replace with actual API calls
@@ -19,14 +19,9 @@ export default function App() {
   const [symbol, setSymbol] = useState<string>('SPY');
   const [interval, setInterval] = useState<string>('5 mins');
   const [period, setPeriod] = useState<string>('1 D');
-  const [activeIndicators, setActiveIndicators] = useState<string[]>([]);
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
   const [tradingMode, setTradingMode] = useState<'backtest' | 'live'>('backtest');
   const [chartData, setChartData] = useState<ChartData[]>([]);
-
-  const handleIndicatorChange = (indicators: Indicator[]) => {
-    setActiveIndicators(indicators.filter(i => i.enabled).map(i => i.id));
-  };
 
   const handleStrategySelect = (strategy: Strategy | null) => {
     // Handle strategy selection
@@ -123,7 +118,6 @@ export default function App() {
         <div className="app-main-container">
           <div className="app-main-container-left">
             <ControlPanel
-              onIndicatorChange={handleIndicatorChange}
               onSymbolChange={setSymbol}
               onIntervalChange={setInterval}
               onPeriodChange={setPeriod}
@@ -140,7 +134,6 @@ export default function App() {
               <Chart
                 symbol={symbol}
                 data={chartData}
-                indicators={activeIndicators}
                 trades={backtestResults?.trades.map(trade => ({
                   time: trade.entryTime,
                   price: trade.entryPrice,

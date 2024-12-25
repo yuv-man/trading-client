@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { ChevronDown, Activity, Settings, Code } from 'lucide-react';
-import type { Indicator, Strategy } from '../types/trading';
+import { ChevronDown, Settings, Code } from 'lucide-react';
+import type { Strategy } from '../types/trading';
 import './css/ControlPanel.css';
 import { StrategySelector } from './StrategySelector';
 
 interface ControlPanelProps {
-  onIndicatorChange: (indicators: Indicator[]) => void;
   onStrategySelect: (strategy: Strategy | null) => void;
   onBacktest: (params: {
     startDate: string;
@@ -26,7 +25,6 @@ export function ControlPanel({
   symbol,
   period,
   interval,
-  onIndicatorChange,
   onStrategySelect,
   onBacktest,
   onSymbolChange,
@@ -48,39 +46,7 @@ export function ControlPanel({
     type: 'success' | 'error' | null;
   }>({ message: '', type: null });
 
-  const [indicators, setIndicators] = useState<Indicator[]>([
-    {
-      id: 'ma',
-      name: 'Moving Average',
-      type: 'MA',
-      enabled: false,
-      parameters: { period: 20, type: 'simple' },
-    },
-    {
-      id: 'rsi',
-      name: 'RSI',
-      type: 'RSI',
-      enabled: false,
-      parameters: { period: 14 },
-    },
-    {
-      id: 'bollinger',
-      name: 'Bollinger Bands',
-      type: 'BOLLINGER',
-      enabled: false,
-      parameters: { period: 20, standardDeviations: 2 },
-    },
-  ]);
-
   const [localSymbol, setLocalSymbol] = useState(symbol);
-
-  const handleIndicatorToggle = (id: string) => {
-    const updatedIndicators = indicators.map(ind =>
-      ind.id === id ? { ...ind, enabled: !ind.enabled } : ind
-    );
-    setIndicators(updatedIndicators);
-    onIndicatorChange(updatedIndicators);
-  };
 
   const handleBacktest = () => {
     if (!startDate || !endDate || !symbol) return;
@@ -197,28 +163,6 @@ export function ControlPanel({
           </div>
         </div>
 
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Activity size={20} />
-            Technical Indicators
-          </h3>
-          <div className="space-y-3">
-            {indicators.map((indicator) => (
-              <div key={indicator.id} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={indicator.id}
-                  checked={indicator.enabled}
-                  onChange={() => handleIndicatorToggle(indicator.id)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor={indicator.id} className="ml-2 block text-sm text-gray-900">
-                  {indicator.name}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
         <div>
           <h3
           className="text-lg font-semibold mb-3 flex items-center gap-2 cursor-pointer"
