@@ -384,11 +384,17 @@ export function Chart({ data, trades, symbol }: ChartProps) {
   };
 
   const addIndicator = (key: string) => {
-    const indicator = indicators[key as keyof typeof indicators];
     if (!activeIndicators.some(ind => ind.key === key)) {
-      setActiveIndicators(prev => [...prev, { key, params: indicator.params }]);
+      setActiveIndicators(prev => [...prev, { key, params: indicators[key].params }]);
     } else {
       setActiveIndicators(prev => prev.filter(ind => ind.key !== key));
+      // Remove the chart reference when the indicator is removed
+      if (SEPARATE_CHART_INDICATORS.includes(key)) {
+        if (indicatorChartsRef.current[key]) {
+          indicatorChartsRef.current[key].remove();
+          delete indicatorChartsRef.current[key];
+        }
+      }
     }
   };
 
