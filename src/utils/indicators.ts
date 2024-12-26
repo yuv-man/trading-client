@@ -39,45 +39,71 @@ export function calculateRSI(data: ChartData[], period: number = 14) {
   return result;
 }
 
-export function calculateBollingerBands(data: ChartData[], period: number = 20, standardDeviations: number = 2) {
-  const ma = calculateMA(data, period);
-  const upperBand = [];
-  const lowerBand = [];
+export function calculateBollingerBands(
+  data: ChartData[],
+  period: number = 20,
+  stdDev: number = 2
+) {
+  // Calculate SMA first (this will be our middle band)
+  const sma = calculateSMA(data, period);
   
-  for (let i = period - 1; i < data.length; i++) {
-    const slice = data.slice(i - period + 1, i + 1);
-    const avg = ma[i - (period - 1)].y;
+  // Calculate standard deviation
+  const bands = sma.map((smaPoint, index) => {
+    // Get the data points for this period
+    const periodData = data.slice(Math.max(0, index - period + 1), index + 1);
     
-    const squaredDiffs = slice.map(d => Math.pow(d.close - avg, 2));
-    const standardDeviation = Math.sqrt(squaredDiffs.reduce((sum, sq) => sum + sq, 0) / period);
+    // Calculate standard deviation of closing prices
+    const mean = smaPoint.y;
+    const squaredDiffs = periodData.map(d => Math.pow(Number(d.close) - mean, 2));
+    const variance = squaredDiffs.reduce((sum, diff) => sum + diff, 0) / period;
+    const standardDeviation = Math.sqrt(variance);
     
-    upperBand.push({
-      x: new Date(data[i].time),
-      y: avg + (standardDeviation * standardDeviations),
-    });
-    
-    lowerBand.push({
-      x: new Date(data[i].time),
-      y: avg - (standardDeviation * standardDeviations),
-    });
-  }
-  
-  return [upperBand, lowerBand];
+    // Calculate upper and lower bands
+    return {
+      x: smaPoint.x,
+      middle: smaPoint.y,
+      upper: smaPoint.y + (standardDeviation * stdDev),
+      lower: smaPoint.y - (standardDeviation * stdDev)
+    };
+  });
+
+  // Separate the bands into their respective arrays
+  return {
+    upper: bands.map(b => ({ x: b.x, y: b.upper })),
+    middle: bands.map(b => ({ x: b.x, y: b.middle })),
+    lower: bands.map(b => ({ x: b.x, y: b.lower }))
+  };
 }
 
 export function calculateMACD(data: ChartData[], fastPeriod: number, slowPeriod: number, signalPeriod: number) {
+  // Calculate EMAs
   const fastEMA = calculateEMA(data, fastPeriod);
   const slowEMA = calculateEMA(data, slowPeriod);
-  const macd = fastEMA.map((d, i) => d.y - slowEMA[i].y);
-  const signalData = macd.map((m, i) => ({
-    time: data[i + fastPeriod].time,
-    open: m,
-    high: m,
-    low: m,
-    close: m
+  
+  // Start from the point where both EMAs are available (slowPeriod)
+  const macdLine = [];
+  for (let i = slowPeriod - fastPeriod; i < fastEMA.length; i++) {
+    macdLine.push({
+      x: fastEMA[i].x,
+      y: fastEMA[i].y - slowEMA[i - (slowPeriod - fastPeriod)].y
+    });
+  }
+
+  // Calculate signal line using EMA of MACD
+  const macdData = macdLine.map(point => ({
+    time: point.x.toISOString(),
+    open: point.y,
+    high: point.y,
+    low: point.y,
+    close: point.y
   }));
-  const signal = calculateEMA(signalData, signalPeriod);
-  return { macd, signal };
+  
+  const signalLine = calculateEMA(macdData, signalPeriod);
+
+  return {
+    macd: macdLine,
+    signal: signalLine
+  };
 }
 
 export function calculateStochastic(data: ChartData[], period: number, fastKPeriod: number, slowKPeriod: number) {
@@ -198,15 +224,14 @@ export function calculateDI(data: ChartData[], period: number, direction: 'plus'
 export const indicators = {
   SMA: {
     name: 'SMA',
-    enabled: false,
     fn: calculateSMA,
     params: {
-      period: 20
+      period1: 20,
+      period2: 28
     }
   },
   RSI: {
     name: 'RSI',
-    enabled: false,
     fn: calculateRSI,
     params: {
       period: 14
@@ -214,7 +239,6 @@ export const indicators = {
   },
   BollingerBands: {
     name: 'Bollinger Bands',
-    enabled: false,
     fn: calculateBollingerBands,
     params: {
       period: 20,
@@ -223,7 +247,6 @@ export const indicators = {
   },
   MACD: {
     name: 'MACD',
-    enabled: false,
     fn: calculateMACD,
     params: {
       fastPeriod: 12,
@@ -233,7 +256,6 @@ export const indicators = {
   },
   Stochastic: {
     name: 'Stochastic',
-    enabled: false,
     fn: calculateStochastic,
     params: {
       period: 14,
@@ -243,7 +265,6 @@ export const indicators = {
   },
   ADX: {
     name: 'ADX',
-    enabled: false,
     fn: calculateADX,
     params: {
       period: 14
@@ -251,7 +272,6 @@ export const indicators = {
   },
   EMA: {
     name: 'EMA',
-    enabled: false,
     fn: calculateEMA,
     params: {
       period: 20

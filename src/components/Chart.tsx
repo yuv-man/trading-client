@@ -3,7 +3,7 @@ import { createChart, IChartApi, UTCTimestamp } from 'lightweight-charts';
 import { TechnicalIndicators } from './chart/TechnicalIndicators';
 import type { ChartData, Indicator } from '../types/trading';
 import { Settings, Plus, Minus, ChevronDown, ChevronRight } from 'lucide-react';
-import { indicators, calculateSMA, calculateRSI, calculateBollingerBands } from '../utils/indicators';
+import { indicators, calculateSMA, calculateRSI, calculateBollingerBands, calculateMACD } from '../utils/indicators';
 import { IndicatorParams } from './IndicatorParams';
 
 
@@ -24,10 +24,18 @@ interface IndicatorState {
 
 export function Chart({ data, trades, symbol }: ChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const indicatorChartsRef = useRef<Record<string, IChartApi>>({});
   const chartRef = useRef<IChartApi | null>(null);
   const [showIndicatorSettings, setShowIndicatorSettings] = useState(false);
   const [expandedIndicators, setExpandedIndicators] = useState<Record<string, boolean>>({});
   const [activeIndicators, setActiveIndicators] = useState<IndicatorState[]>([]);
+
+  // Add this to track which indicators need separate charts
+  const SEPARATE_CHART_INDICATORS = ['RSI', 'MACD'];
+  const INDICATOR_HEIGHTS: Record<string, number> = {
+    RSI: 150,
+    MACD: 150,
+  };
 
   const formatIntradayData = (rawData: ChartData[]) => {
     return Object.values(rawData)
@@ -94,6 +102,39 @@ export function Chart({ data, trades, symbol }: ChartProps) {
       crosshair: {
         mode: 1
       },
+      handleScroll: {
+        vertTouchDrag: false,
+      },
+    });
+
+    // Initialize separate charts for indicators that need them
+    activeIndicators.forEach(indicator => {
+      if (SEPARATE_CHART_INDICATORS.includes(indicator.key)) {
+        // Check if chart already exists
+        if (!indicatorChartsRef.current[indicator.key]) {
+          const container = document.getElementById(`${indicator.key}-chart`);
+          if (container) {
+            const indicatorChart = createChart(container, {
+              width: container.clientWidth,
+              height: INDICATOR_HEIGHTS[indicator.key],
+              layout: {
+                background: { type: 'solid', color: '#ffffff' },
+                textColor: '#333',
+              },
+              grid: {
+                vertLines: { color: '#f0f0f0' },
+                horzLines: { color: '#f0f0f0' },
+              },
+              timeScale: {
+                visible: true,
+                timeVisible: true,
+                secondsVisible: true,
+              },
+            });
+            indicatorChartsRef.current[indicator.key] = indicatorChart;
+          }
+        }
+      }
     });
 
     // Add candlestick series
@@ -184,27 +225,41 @@ export function Chart({ data, trades, symbol }: ChartProps) {
     }));
   };
 
+  const formatIndicatorData = (data: { x: Date; y: number; }[]) => {
+    return data.map(point => ({
+      time: Math.floor(point.x.getTime() / 1000) as UTCTimestamp,
+      value: point.y
+    }));
+  };
+
   const addIndicatorToChart = (chart: IChartApi, indicator: IndicatorState) => {
     try {
       const { key, params } = indicator;
-      console.log('Adding indicator:', key, params);
-      const indicatorConfig = indicators[key];
-      let lineSeries, middleBand, upperBand, lowerBand, rsiSeries;
-      let smaData, bbData, rsiData;
+      let lineSeries, middleBand, upperBand, lowerBand;
+      let sma1Series, sma2Series, sma1Data, sma2Data;
+      let smaData, bbData, rsiData, macdData;
+      let macdLineSeries, signalLineSeries, histogramSeries;
+      let rsiSeries, rsiChart, macdChart;
       
-      const formattedData = formatIntradayData(data);
-
       switch (key) {
-        case 'sma':
-          lineSeries = chart.addLineSeries({
-            color: params.color || '#2962FF',
+        case 'SMA':
+          sma1Series = chart.addLineSeries({
+            color: params.color1 || '#2962FF',
             lineWidth: 2,
-            title: `SMA(${params.period || 14})`
+            title: `SMA(${params.period1 || 14})`
           });
-          smaData = calculateSMA(formattedData, params.period || 14);
-          lineSeries.setData(smaData);
+          sma1Data = formatIndicatorData(calculateSMA(data, params.period1 || 14));
+          sma1Series.setData(sma1Data);
+
+          sma2Series = chart.addLineSeries({
+            color: params.color2 || '#FF6B6B',
+            lineWidth: 2,
+            title: `SMA(${params.period2 || 28})`
+          });
+          sma2Data = formatIndicatorData(calculateSMA(data, params.period2 || 28));
+          sma2Series.setData(sma2Data);
           break;
-        case 'bollinger':
+        case 'BollingerBands':
           middleBand = chart.addLineSeries({
             color: '#2962FF',
             lineWidth: 2,
@@ -220,21 +275,99 @@ export function Chart({ data, trades, symbol }: ChartProps) {
             lineWidth: 1,
             title: 'BB Lower'
           });
-          bbData = calculateBollingerBands(formattedData, params.period || 20, params.stdDev || 2);
-          middleBand.setData(bbData.middle);
-          upperBand.setData(bbData.upper);
-          lowerBand.setData(bbData.lower);
+          bbData = calculateBollingerBands(data, params.period || 20, params.stdDev || 2);
+          middleBand.setData(formatIndicatorData(bbData.middle));
+          upperBand.setData(formatIndicatorData(bbData.upper));
+          lowerBand.setData(formatIndicatorData(bbData.lower));
           break;
-        case 'rsi':
-          rsiSeries = chart.addLineSeries({
-            color: '#2962FF',
-            lineWidth: 2,
-            title: `RSI(${params.period || 14})`,
-            priceScaleId: 'right',
-            pane: 1
-          });
-          rsiData = calculateRSI(formattedData, params.period || 14);
-          rsiSeries.setData(rsiData);
+        case 'RSI':
+          rsiChart = indicatorChartsRef.current[key];
+          if (rsiChart) {
+            rsiSeries = rsiChart.addLineSeries({
+              color: '#2962FF',
+              lineWidth: 2,
+              title: `RSI(${params.period || 14})`,
+              priceFormat: {
+                type: 'custom',
+                minMove: 0.01,
+                formatter: (price: number) => price.toFixed(2),
+              },
+            });
+            rsiData = formatIndicatorData(calculateRSI(data, params.period || 14));
+            rsiSeries.setData(rsiData);
+            
+            rsiChart.priceScale('right').applyOptions({
+              autoScale: false,
+              scaleMargins: {
+                top: 0.1,
+                bottom: 0.1,
+              },
+              minValue: 0,
+              maxValue: 100,
+            });
+          }
+          break;
+        case 'MACD':
+          macdChart = indicatorChartsRef.current[key];
+          if (macdChart) {
+            const { fastPeriod, slowPeriod, signalPeriod} = params;
+            
+            // Add MACD line series
+            macdLineSeries = macdChart.addLineSeries({
+              color: '#2962FF',
+              lineWidth: 2,
+              title: 'MACD Line',
+            });
+
+            // Add Signal line series
+            signalLineSeries = macdChart.addLineSeries({
+              color: '#FF6B6B',
+              lineWidth: 2,
+              title: 'Signal Line',
+            });
+
+            // Add Histogram series
+            histogramSeries = macdChart.addHistogramSeries({
+              color: '#26a69a',
+              title: 'MACD Histogram',
+            });
+
+            // Calculate MACD data
+            const macdData = calculateMACD(data, 
+              fastPeriod || 12, 
+              slowPeriod || 26, 
+              signalPeriod || 9
+            );
+
+            // Format and set data for each series
+            const formattedMacdData = formatIndicatorData(macdData.macd);
+            const formattedSignalData = formatIndicatorData(macdData.signal);
+
+            // Calculate histogram data safely by ensuring indexes match
+            const formattedHistogramData = formattedMacdData.map((macdPoint, i) => {
+              const signalPoint = formattedSignalData[i];
+              if (!signalPoint) return null;
+              
+              return {
+                time: macdPoint.time,
+                value: macdPoint.value - signalPoint.value,
+                color: macdPoint.value >= signalPoint.value ? '#26a69a' : '#ef5350'
+              };
+            }).filter(Boolean); // Remove any null values
+
+            macdLineSeries.setData(formattedMacdData);
+            signalLineSeries.setData(formattedSignalData);
+            histogramSeries.setData(formattedHistogramData);
+
+            // Set scale for better visualization
+            macdChart.priceScale('right').applyOptions({
+              autoScale: true,
+              scaleMargins: {
+                top: 0.1,
+                bottom: 0.1,
+              },
+            });
+          }
           break;
       }
     } catch (error) {
@@ -242,21 +375,32 @@ export function Chart({ data, trades, symbol }: ChartProps) {
     }
   };
   
-  const updateIndicatorParams = (key: string, newParams: Record<string, any>) => {
+  const updateIndicatorParams = (indicatorName: string, key: string, newParams: Record<string, any>) => {
     setActiveIndicators(prev =>
       prev.map(ind =>
-        ind.key === key ? { ...ind, params: { ...ind.params, ...newParams } } : ind
+        ind.key === indicatorName ? { ...ind, params: { ...ind.params, [key]: newParams } } : ind
       )
     );
   };
 
   const addIndicator = (key: string) => {
+    const indicator = indicators[key as keyof typeof indicators];
     if (!activeIndicators.some(ind => ind.key === key)) {
-      setActiveIndicators(prev => [...prev, { key, params: {} }]);
+      setActiveIndicators(prev => [...prev, { key, params: indicator.params }]);
     } else {
       setActiveIndicators(prev => prev.filter(ind => ind.key !== key));
     }
   };
+
+  // Add cleanup for indicator charts
+  useEffect(() => {
+    return () => {
+      Object.values(indicatorChartsRef.current).forEach(chart => {
+        chart.remove();
+      });
+      indicatorChartsRef.current = {};
+    };
+  }, []);
 
   if (!data?.length) {
     return (
@@ -304,7 +448,7 @@ export function Chart({ data, trades, symbol }: ChartProps) {
                   <div className="mt-2 pl-6">
                     <IndicatorParams 
                       indicator={indicator}
-                      onChange={(params) => updateIndicatorParams(key, params)}
+                      onIndicatorParamsChanged={(key, params) => updateIndicatorParams(indicator.name, key, params)}
                       initialParams={activeIndicators.find(ind => ind.key === key)?.params}
                     />
                   </div>
@@ -315,7 +459,23 @@ export function Chart({ data, trades, symbol }: ChartProps) {
         </div>
       )}
 
-      <div ref={chartContainerRef} className="w-full h-[600px]" style={{position: 'relative'}} />
+      <div className="flex flex-col gap-1">
+        <div ref={chartContainerRef} className="w-full h-[500px]" style={{position: 'relative'}} />
+        
+        {activeIndicators
+          .filter(ind => SEPARATE_CHART_INDICATORS.includes(ind.key))
+          .map(indicator => (
+            <div
+              key={indicator.key}
+              id={`${indicator.key}-chart`}
+              className="w-full"
+              style={{
+                height: INDICATOR_HEIGHTS[indicator.key],
+                position: 'relative'
+              }}
+            />
+          ))}
+      </div>
       
       {activeIndicators.length > 0 && (
         <TechnicalIndicators 

@@ -6,14 +6,6 @@ import { BacktestResults } from './components/BacktestResults';
 import type { BacktestResult, ChartData, Strategy } from './types/trading';
 import { registerStrategy, runBacktest, getStockData } from './utils/api';
 
-// Sample data - replace with actual API calls
-const sampleData: ChartData[] = [
-  { time: '2024-01-01', open: 150, high: 155, low: 148, close: 153 },
-  { time: '2024-01-02', open: 153, high: 157, low: 151, close: 156 },
-  { time: '2024-01-03', open: 156, high: 160, low: 154, close: 158 },
-  { time: '2024-01-04', open: 158, high: 162, low: 156, close: 150 },
-  { time: '2024-01-05', open: 160, high: 165, low: 158, close: 163 },
-];
 
 export default function App() {
   const [symbol, setSymbol] = useState<string>('SPY');

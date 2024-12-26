@@ -15,14 +15,14 @@ export function TechnicalIndicators({ data, activeIndicators, chart }: Technical
 
     const indicators: ISeriesApi<"Line">[] = [];
 
-    if (activeIndicators.includes('ma') && data.length >= 20) {
-      const maLine = chart.addLineSeries({
+    if (activeIndicators.includes('sma') && data.length >= 20) {
+      const smaLine = chart.addLineSeries({
         color: '#2196F3',
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
       });
-      maLine.setData(formatIndicatorData(calculateSMA(data, 20)));
-      indicators.push(maLine);
+      smaLine.setData(formatIndicatorData(calculateSMA(data, 20)));
+      indicators.push(smaLine);
     }
 
     if (activeIndicators.includes('rsi') && data.length >= 20) {
