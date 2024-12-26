@@ -5,6 +5,9 @@ export interface ChartData {
   low: number;
   close: number;
   volume?: number;
+  last_daily_peak?: number;
+  last_daily_trough?: number;
+  daily_trend?: string;
 }
 
 export interface Indicator {
