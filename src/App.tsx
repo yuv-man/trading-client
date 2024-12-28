@@ -60,7 +60,11 @@ export default function App() {
     try {
       const results = await getStockData(params);
       if(results.status === 'success') {
-        setChartData(results.data);
+        if(isIntraday(params.interval)) {
+          setChartData(results.intraday_data);
+        } else {
+          setChartData(results.daily_data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch stock data:', error);
@@ -74,6 +78,10 @@ export default function App() {
       symbol: symbol,
     });
   }, [handleStockData, symbol, interval, period]);
+
+  const isIntraday = (interval: string) => {
+    return interval.includes('min') || interval.includes('hour') || interval.includes('mins') || interval.includes('hours');
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">

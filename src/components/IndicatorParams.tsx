@@ -5,12 +5,12 @@ import { Indicator } from '../types/trading';
 interface IndicatorParamsProps {
   indicator: Indicator;
   onIndicatorParamsChanged: (key: string, value: number) => void;
+  initialParams: Record<string, number>;
 }
 
-export function IndicatorParams({ indicator, onIndicatorParamsChanged }: IndicatorParamsProps) {
-  const params = indicator.params;
+export function IndicatorParams({ indicator, onIndicatorParamsChanged, initialParams }: IndicatorParamsProps) {
+  const params = initialParams || indicator.params;
 const [paramValues, setParamValues] = useState<Record<string, number>>(params);
-
   const handleParamChange = (key: string, value: number) => {
     setParamValues(prev => ({ ...prev, [key]: value }));
     onIndicatorParamsChanged(key, value);

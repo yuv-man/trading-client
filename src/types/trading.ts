@@ -8,6 +8,7 @@ export interface ChartData {
   last_daily_peak?: number;
   last_daily_trough?: number;
   daily_trend?: string;
+  pivot_point?: string;
 }
 
 export interface Indicator {

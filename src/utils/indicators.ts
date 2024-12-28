@@ -227,7 +227,7 @@ export const indicators = {
     fn: calculateSMA,
     params: {
       period1: 20,
-      period2: 28
+      period2: 50
     }
   },
   RSI: {
