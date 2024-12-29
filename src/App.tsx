@@ -13,8 +13,9 @@ export default function App() {
   const [period, setPeriod] = useState<string>('1 D');
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
   const [tradingMode, setTradingMode] = useState<'backtest' | 'live'>('backtest');
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-
+  const [intradayData, setIntradayData] = useState<ChartData[]>([]);
+  const [dailyData, setDailyData] = useState<ChartData[]>([]);
+  const [timeframe, setTimeframe] = useState<'intraday' | 'daily'>('intraday');
   const handleStrategySelect = (strategy: Strategy | null) => {
     // Handle strategy selection
   };
@@ -61,9 +62,12 @@ export default function App() {
       const results = await getStockData(params);
       if(results.status === 'success') {
         if(isIntraday(params.interval)) {
-          setChartData(results.intraday_data);
+          setTimeframe('intraday');
+          setIntradayData(results.intraday_data);
+          setDailyData(results.daily_data);
         } else {
-          setChartData(results.daily_data);
+          setTimeframe('daily');
+          setDailyData(results.daily_data);
         }
       }
     } catch (error) {
@@ -82,6 +86,10 @@ export default function App() {
   const isIntraday = (interval: string) => {
     return interval.includes('min') || interval.includes('hour') || interval.includes('mins') || interval.includes('hours');
   };
+
+  const toggleTimeframe = (timeframe: 'intraday' | 'daily') => {
+    setTimeframe(timeframe);
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -133,12 +141,15 @@ export default function App() {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <Chart
                 symbol={symbol}
-                data={chartData}
+                data={timeframe === 'intraday' ? intradayData : dailyData}
                 trades={backtestResults?.trades.map(trade => ({
                   time: trade.entryTime,
                   price: trade.entryPrice,
                   type: 'buy',
                 }))}
+                timeframeChanged={toggleTimeframe}
+                timeframe={timeframe}
+                isIntraday={isIntraday(interval)}
               />
             </div>
             {backtestResults && <BacktestResults results={backtestResults} />}

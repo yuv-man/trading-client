@@ -258,9 +258,9 @@ export const indicators = {
     name: 'Stochastic',
     fn: calculateStochastic,
     params: {
-      period: 14,
-      fastKPeriod: 3,
-      slowKPeriod: 3
+      kPeriod: 14,
+      dPeriod: 3,
+      smoothK: 3
     }
   },
   ADX: {
@@ -274,7 +274,8 @@ export const indicators = {
     name: 'EMA',
     fn: calculateEMA,
     params: {
-      period: 20
+      period1: 20,
+      period2: 50
     }
   }
 } as const;

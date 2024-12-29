@@ -1,6 +1,14 @@
 import { IChartApi, UTCTimestamp, ISeriesApi } from 'lightweight-charts';
 import type { ChartData } from '../types/trading';
-import { calculateSMA, calculateRSI, calculateBollingerBands, calculateMACD } from '../utils/indicators';
+import { 
+  calculateSMA, 
+  calculateRSI, 
+  calculateBollingerBands, 
+  calculateMACD,
+  calculateEMA,
+  calculateStochastic,
+  calculateADX
+} from '../utils/indicators';
 
 interface ChartIndicatorProps {
   chart: IChartApi;
@@ -13,11 +21,13 @@ interface ChartIndicatorProps {
 }
 
 const seriesRefs = {
-    rsiSeries: null as ISeriesApi<"Line"> | null,
-    macdLineSeries: null as ISeriesApi<"Line"> | null,
-    signalLineSeries: null as ISeriesApi<"Line"> | null,
-    histogramSeries: null as ISeriesApi<"Histogram"> | null,
-  };
+  rsiSeries: null as ISeriesApi<"Line"> | null,
+  macdLineSeries: null as ISeriesApi<"Line"> | null,
+  signalLineSeries: null as ISeriesApi<"Line"> | null,
+  histogramSeries: null as ISeriesApi<"Histogram"> | null,
+  stochasticSeries: null as ISeriesApi<"Line"> | null,
+  adxSeries: null as ISeriesApi<"Line"> | null,
+};
 
 export function ChartIndicator({ chart, indicator, data, indicatorChart }: ChartIndicatorProps) {
   const formatIndicatorData = (data: { x: Date; y: number; }[]) => {
@@ -29,11 +39,10 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
 
   try {
     const { key, params } = indicator;
-    let lineSeries, middleBand, upperBand, lowerBand;
     let sma1Series, sma2Series, sma1Data, sma2Data;
-    let smaData, bbData, rsiData, macdData;
-    let macdLineSeries, signalLineSeries, histogramSeries;
-    
+    let ema1Series, ema2Series, ema1Data, ema2Data;
+    let middleBand, upperBand, lowerBand, bbData;
+
     switch (key) {
       case 'SMA':
         sma1Series = chart.addLineSeries({
@@ -69,6 +78,7 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
           lineWidth: 1,
           title: 'BB Lower'
         });
+        
         bbData = calculateBollingerBands(data, params.period || 20, params.stdDev || 2);
         middleBand.setData(formatIndicatorData(bbData.middle));
         upperBand.setData(formatIndicatorData(bbData.upper));
@@ -77,14 +87,15 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
 
       case 'RSI':
         if (indicatorChart) {
-            if(seriesRefs.rsiSeries) {
-                try {
-                    indicatorChart.removeSeries(seriesRefs.rsiSeries);
-                } catch (error) {
-                    console.log('RSI series already removed');
-                }
+          if(seriesRefs.rsiSeries) {
+            try {
+              indicatorChart.removeSeries(seriesRefs.rsiSeries);
+            } catch (error) {
+              console.error('RSI series removal error:', error);
             }
-            seriesRefs.rsiSeries = indicatorChart.addLineSeries({
+          }
+          
+          seriesRefs.rsiSeries = indicatorChart.addLineSeries({
             color: '#2962FF',
             lineWidth: 2,
             title: `RSI(${params.period || 14})`,
@@ -94,11 +105,12 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
               formatter: (price: number) => price.toFixed(2),
             },
           });
-          rsiData = formatIndicatorData(calculateRSI(data, params.period || 14));
+          
+          const rsiData = formatIndicatorData(calculateRSI(data, params.period || 14));
           seriesRefs.rsiSeries.setData(rsiData);
           
           indicatorChart.priceScale('right').applyOptions({
-            autoScale: false,
+            autoScale: true,
             scaleMargins: {
               top: 0.1,
               bottom: 0.1,
@@ -111,40 +123,48 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
 
       case 'MACD':
         if (indicatorChart) {
-          const { fastPeriod, slowPeriod, signalPeriod} = params;
+          const { fastPeriod = 12, slowPeriod = 26, signalPeriod = 9 } = params;
+          
+          // Remove existing series if they exist
+          if (seriesRefs.macdLineSeries) {
+            try {
+              indicatorChart.removeSeries(seriesRefs.macdLineSeries);
+              indicatorChart.removeSeries(seriesRefs.signalLineSeries!);
+              indicatorChart.removeSeries(seriesRefs.histogramSeries!);
+            } catch (error) {
+              console.error('MACD series removal error:', error);
+            }
+          }
           
           // Add MACD line series
-          macdLineSeries = indicatorChart.addLineSeries({
+          seriesRefs.macdLineSeries = indicatorChart.addLineSeries({
             color: '#2962FF',
             lineWidth: 2,
             title: 'MACD Line',
           });
 
           // Add Signal line series
-          signalLineSeries = indicatorChart.addLineSeries({
+          seriesRefs.signalLineSeries = indicatorChart.addLineSeries({
             color: '#FF6B6B',
             lineWidth: 2,
             title: 'Signal Line',
           });
 
           // Add Histogram series
-          histogramSeries = indicatorChart.addHistogramSeries({
+          seriesRefs.histogramSeries = indicatorChart.addHistogramSeries({
             color: '#26a69a',
             title: 'MACD Histogram',
+            priceScaleId: 'right'
           });
 
           // Calculate MACD data
-          const macdData = calculateMACD(data, 
-            fastPeriod || 12, 
-            slowPeriod || 26, 
-            signalPeriod || 9
-          );
+          const macdData = calculateMACD(data, fastPeriod, slowPeriod, signalPeriod);
 
           // Format and set data for each series
           const formattedMacdData = formatIndicatorData(macdData.macd);
           const formattedSignalData = formatIndicatorData(macdData.signal);
 
-          // Calculate histogram data safely by ensuring indexes match
+          // Calculate histogram data
           const formattedHistogramData = formattedMacdData.map((macdPoint, i) => {
             const signalPoint = formattedSignalData[i];
             if (!signalPoint) return null;
@@ -154,13 +174,12 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
               value: macdPoint.value - signalPoint.value,
               color: macdPoint.value >= signalPoint.value ? '#26a69a' : '#ef5350'
             };
-          }).filter(Boolean); // Remove any null values
+          }).filter(Boolean);
 
-          macdLineSeries.setData(formattedMacdData);
-          signalLineSeries.setData(formattedSignalData);
-          histogramSeries.setData(formattedHistogramData);
+          seriesRefs.macdLineSeries.setData(formattedMacdData);
+          seriesRefs.signalLineSeries.setData(formattedSignalData);
+          seriesRefs.histogramSeries.setData(formattedHistogramData);
 
-          // Set scale for better visualization
           indicatorChart.priceScale('right').applyOptions({
             autoScale: true,
             scaleMargins: {
@@ -170,8 +189,105 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
           });
         }
         break;
+
+      case 'EMA':
+        
+        ema1Series = chart.addLineSeries({
+          color: params.color1 || '#2962FF',
+          lineWidth: 2,
+          title: `EMA(${params.period1 || 14})`
+        });
+        ema1Data = formatIndicatorData(calculateEMA(data, params.period1 || 14));
+        ema1Series.setData(ema1Data);
+
+        ema2Series = chart.addLineSeries({
+          color: params.color2 || '#FF6B6B',
+          lineWidth: 2,
+          title: `EMA(${params.period2 || 28})`
+        });
+        ema2Data = formatIndicatorData(calculateEMA(data, params.period2 || 28));
+        ema2Series.setData(ema2Data);
+        break;
+
+      case 'Stochastic':
+        if (indicatorChart) {
+          if(seriesRefs.stochasticSeries) {
+            try {
+              indicatorChart.removeSeries(seriesRefs.stochasticSeries);
+            } catch (error) {
+              console.error('Stochastic series removal error:', error);
+            }
+          }
+          
+          seriesRefs.stochasticSeries = indicatorChart.addLineSeries({
+            color: params.color || '#8E24AA',
+            lineWidth: 2,
+            title: `Stochastic(${params.kPeriod || 14}, ${params.dPeriod || 3})`,
+            priceFormat: {
+              type: 'custom',
+              minMove: 0.01,
+              formatter: (price: number) => price.toFixed(2),
+            },
+          });
+          
+          const stochasticData = formatIndicatorData(calculateStochastic(
+            data, 
+            params.kPeriod || 14,
+            params.dPeriod || 3,
+            params.smoothK || 3
+          ).k);
+          
+          seriesRefs.stochasticSeries.setData(stochasticData);
+          
+          indicatorChart.priceScale('right').applyOptions({
+            autoScale: true,
+            scaleMargins: {
+              top: 0.1,
+              bottom: 0.1,
+            },
+          });
+        }
+        break;
+
+      case 'ADX':
+        if (indicatorChart) {
+          if(seriesRefs.adxSeries) {
+            try {
+              indicatorChart.removeSeries(seriesRefs.adxSeries);
+            } catch (error) {
+              console.error('ADX series removal error:', error);
+            }
+          }
+          
+          seriesRefs.adxSeries = indicatorChart.addLineSeries({
+            color: params.color || '#FF5722',
+            lineWidth: 2,
+            title: `ADX(${params.period || 14})`,
+            priceFormat: {
+              type: 'custom',
+              minMove: 0.01,
+              formatter: (price: number) => price.toFixed(2),
+            },
+          });
+          
+          const adxData = formatIndicatorData(calculateADX(data, params.period || 14));
+          seriesRefs.adxSeries.setData(adxData);
+          
+          indicatorChart.priceScale('right').applyOptions({
+            autoScale: true,
+            scaleMargins: {
+              top: 0.1,
+              bottom: 0.1,
+            },
+          });
+        }
+        break;
+
+      default:
+        console.warn(`Unsupported indicator key: ${key}`);
+        break;
     }
   } catch (error) {
     console.error(`Error adding indicator ${indicator.key}:`, error);
   }
-} 
+}

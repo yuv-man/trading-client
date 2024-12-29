@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createChart, IChartApi, UTCTimestamp } from 'lightweight-charts';
-import type { ChartData, Indicator } from '../types/trading';
-import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp } from 'lucide-react';
-import { indicators, calculateSMA, calculateRSI, calculateBollingerBands, calculateMACD } from '../utils/indicators';
+import type { ChartData } from '../types/trading';
+import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp, Clock } from 'lucide-react';
+import { indicators } from '../utils/indicators';
 import { IndicatorParams } from './IndicatorParams';
 import './css/Chart.css';
 import { ChartIndicator } from './ChartIndicator';
@@ -15,6 +15,9 @@ interface ChartProps {
     price: number;
     type: 'buy' | 'sell';
   }[];
+  isIntraday: boolean;
+  timeframe: 'intraday' | 'daily';
+  timeframeChanged: (timeframe: 'intraday' | 'daily') => void;
 }
 
 interface IndicatorState {
@@ -22,7 +25,7 @@ interface IndicatorState {
   params: Record<string, any>;
 }
 
-export function Chart({ data, trades, symbol }: ChartProps) {
+export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeChanged }: ChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const indicatorChartsRef = useRef<Record<string, IChartApi>>({});
   const chartRef = useRef<IChartApi | null>(null);
@@ -33,28 +36,28 @@ export function Chart({ data, trades, symbol }: ChartProps) {
   const trendLinesRef = useRef<any[]>([]);
 
   // Add this to track which indicators need separate charts
-  const SEPARATE_CHART_INDICATORS = ['RSI', 'MACD'];
+  const SEPARATE_CHART_INDICATORS = ['RSI', 'MACD', 'Stochastic', 'ADX'];
   const INDICATOR_HEIGHTS: Record<string, number> = {
     RSI: 150,
     MACD: 150,
+    Stochastic: 150,
+    ADX: 150,
   };
 
   const formattedData = useMemo(() => {
-    return Object.values(data)
-      .map(d => {
-        const date = new Date(d.time);
-        const time = Math.floor(date.getTime() / 1000) as UTCTimestamp;
+    return data.map(d => {
+      const date = new Date(d.time);
+      const time = Math.floor(date.getTime() / 1000) as UTCTimestamp;
 
-        return {
-          time,
-          open: Number(d.open),
-          high: Number(d.high),
-          low: Number(d.low),
-          close: Number(d.close),
-          volume: Number(d.volume || 0)
-        };
-      })
-      .sort((a, b) => a.time - b.time);
+      return {
+        time,
+        open: Number(d.open),
+        high: Number(d.high),
+        low: Number(d.low),
+        close: Number(d.close),
+        volume: Number(d.volume || 0)
+      };
+    }).sort((a, b) => a.time - b.time);
   }, [data]);
 
   // Add this memoized trend data calculation
@@ -64,16 +67,23 @@ export function Chart({ data, trades, symbol }: ChartProps) {
       downtrend: [] as any[]
     };
 
+    let currentTrend: 'uptrend' | 'downtrend' | null = null;
+    let currentSegment: any[] = [];
+
     formattedData.forEach((d, i) => {
       const trend = data.find(orig => new Date(orig.time).getTime() / 1000 === d.time)?.daily_trend;
-      if (trend === 'uptrend') {
-        segments.uptrend.push({
-          time: d.time,
-          value: d.high,
-          lowerValue: d.low
-        });
-      } else if (trend === 'downtrend') {
-        segments.downtrend.push({
+      
+      // If trend changes or it's the last item, push the current segment
+      if (trend !== currentTrend || i === formattedData.length - 1) {
+        if (currentTrend && currentSegment.length > 0) {
+          segments[currentTrend].push([...currentSegment]);
+        }
+        currentSegment = [];
+        currentTrend = trend as 'uptrend' | 'downtrend' | null;
+      }
+
+      if (trend === 'uptrend' || trend === 'downtrend') {
+        currentSegment.push({
           time: d.time,
           value: d.high,
           lowerValue: d.low
@@ -135,7 +145,6 @@ export function Chart({ data, trades, symbol }: ChartProps) {
     // Initialize separate charts for indicators that need them
     activeIndicators.forEach(indicator => {
       if (SEPARATE_CHART_INDICATORS.includes(indicator.key)) {
-        // Check if chart already exists
         if (!indicatorChartsRef.current[indicator.key]) {
           const container = document.getElementById(`${indicator.key}-chart`);
           if (container) {
@@ -162,7 +171,6 @@ export function Chart({ data, trades, symbol }: ChartProps) {
       }
     });
 
-    // Add candlestick series
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: '#26a69a',
       downColor: '#ef5350',
@@ -171,23 +179,34 @@ export function Chart({ data, trades, symbol }: ChartProps) {
       wickDownColor: '#ef5350',
     });
 
+    // Add markers for peaks and troughs in daily timeframe
+    if (showTrends && timeframe === 'daily') {
+      const markers = data
+        .filter(d => d.pivot_point)
+        .map(d => ({
+          time: Math.floor(new Date(d.time).getTime() / 1000) as UTCTimestamp,
+          position: d.pivot_point === 'peak' ? 'aboveBar' : 'belowBar',
+          color: d.pivot_point === 'peak' ? '#26a69a' : '#ef5350',
+          shape: d.pivot_point === 'peak' ? 'arrowDown' : 'arrowUp',
+        }));
+      candlestickSeries.setMarkers(markers);
+    }
+
     // Add volume series
     const volumeSeries = chart.addHistogramSeries({
       color: '#26a69a',
       priceFormat: {
         type: 'volume',
       },
-      priceScaleId: '', // Set as an overlay
+      priceScaleId: '', 
       scaleMargins: {
         top: 0.8,
-        bottom: 0,
-      },
+        bottom: 0.02,
+      }
     });
 
-    // Update this line to use formattedData instead
     candlestickSeries.setData(formattedData);
 
-    // Update this line to use formattedData
     volumeSeries.setData(
       formattedData.map(d => ({
         time: d.time,
@@ -198,14 +217,14 @@ export function Chart({ data, trades, symbol }: ChartProps) {
 
     // Add trades markers if available
     if (trades?.length) {
-      const markers = trades.map(trade => ({
+      const tradeMarkers = trades.map(trade => ({
         time: Math.floor(new Date(trade.time).getTime() / 1000) as UTCTimestamp,
         position: trade.type === 'buy' ? 'belowBar' : 'aboveBar',
         color: trade.type === 'buy' ? '#26a69a' : '#ef5350',
         shape: trade.type === 'buy' ? 'arrowUp' : 'arrowDown',
         text: `${trade.type.toUpperCase()} @ ${trade.price}`
       }));
-      candlestickSeries.setMarkers(markers);
+      candlestickSeries.setMarkers(tradeMarkers);
     }
 
     chart.timeScale().fitContent();
@@ -213,7 +232,6 @@ export function Chart({ data, trades, symbol }: ChartProps) {
     return chart;
   };
 
-  // Update addTrendLines to use memoized data
   const addTrendLines = useCallback((chart: IChartApi) => {
     // Clear existing trend lines safely
     trendLinesRef.current = trendLinesRef.current.filter(line => {
@@ -227,56 +245,70 @@ export function Chart({ data, trades, symbol }: ChartProps) {
 
     if (!showTrends) return;
 
-    const peakLine = chart.addLineSeries({
-      color: '#FF6B6B',
-      lineWidth: 1,
-      lineStyle: 2,
-      title: 'Last Peak'
+    // Add trend lines
+    trendSegments.uptrend.forEach(segment => {
+      const areaSeries = chart.addAreaSeries({
+        topColor: 'rgba(38, 166, 154, 0.4)',
+        bottomColor: 'rgba(38, 166, 154, 0.0)',
+        lineColor: 'rgba(38, 166, 154, 0.6)',
+        lineWidth: 1,
+        title: 'Uptrend'
+      });
+      areaSeries.setData(segment);
+      trendLinesRef.current.push(areaSeries);
     });
 
-    const troughLine = chart.addLineSeries({
-      color: '#2962FF',
-      lineWidth: 1,
-      lineStyle: 2,
-      title: 'Last Trough'
+    trendSegments.downtrend.forEach(segment => {
+      const areaSeries = chart.addAreaSeries({
+        topColor: 'rgba(239, 83, 80, 0.4)',
+        bottomColor: 'rgba(239, 83, 80, 0.0)',
+        lineColor: 'rgba(239, 83, 80, 0.6)',
+        lineWidth: 1,
+        title: 'Downtrend'
+      });
+      areaSeries.setData(segment);
+      trendLinesRef.current.push(areaSeries);
     });
 
-    const uptrendArea = chart.addAreaSeries({
-      topColor: 'rgba(38, 166, 154, 0.4)',
-      bottomColor: 'rgba(38, 166, 154, 0.0)',
-      lineColor: 'rgba(38, 166, 154, 0.6)',
-      lineWidth: 1,
-      title: 'Uptrend'
-    });
+    // Add last peak and trough lines for intraday
+    if (timeframe === 'intraday') {
+      const lastPeak = data[data.length - 1]?.last_daily_peak;
+      const lastTrough = data[data.length - 1]?.last_daily_trough;
 
-    const downtrendArea = chart.addAreaSeries({
-      topColor: 'rgba(239, 83, 80, 0.4)',
-      bottomColor: 'rgba(239, 83, 80, 0.0)',
-      lineColor: 'rgba(239, 83, 80, 0.6)',
-      lineWidth: 1,
-      title: 'Downtrend'
-    });
+      if (lastPeak) {
+        const peakLine = chart.addLineSeries({
+          color: '#FF6B6B',
+          lineWidth: 1,
+          lineStyle: 2,
+          title: 'Last Peak'
+        });
 
-    // Use memoized trend segments
-    uptrendArea.setData(trendSegments.uptrend);
-    downtrendArea.setData(trendSegments.downtrend);
+        peakLine.setData([
+          { time: formattedData[0].time, value: lastPeak },
+          { time: formattedData[formattedData.length - 1].time, value: lastPeak }
+        ]);
 
-    const lastPeak = data[data.length - 1].last_daily_peak;
-    const lastTrough = data[data.length - 1].last_daily_trough;
-    console.log(lastPeak, lastTrough);
+        trendLinesRef.current.push(peakLine);
+      }
 
-    peakLine.setData([
-      { time: formattedData[0].time, value: lastPeak },
-      { time: formattedData[formattedData.length - 1].time, value: lastPeak }
-    ]);
+      if (lastTrough) {
+        const troughLine = chart.addLineSeries({
+          color: '#2962FF',
+          lineWidth: 1,
+          lineStyle: 2,
+          title: 'Last Trough'
+        });
 
-    troughLine.setData([
-      { time: formattedData[0].time, value: lastTrough },
-      { time: formattedData[formattedData.length - 1].time, value: lastTrough }
-    ]);
+        troughLine.setData([
+          { time: formattedData[0].time, value: lastTrough },
+          { time: formattedData[formattedData.length - 1].time, value: lastTrough }
+        ]);
 
-    trendLinesRef.current = [peakLine, troughLine, uptrendArea, downtrendArea];
-  }, [showTrends, trendSegments, data, formattedData]);
+        trendLinesRef.current.push(troughLine);
+      }
+    }
+
+  }, [showTrends, trendSegments]);
 
   useEffect(() => {
     const chart = initializeChart();
@@ -309,19 +341,12 @@ export function Chart({ data, trades, symbol }: ChartProps) {
       chart.remove();
       window.removeEventListener('resize', handleResize);
     };
-  }, [data, trades, activeIndicators, showTrends]);
+  }, [data, trades, activeIndicators, showTrends, timeframe]);
 
   const toggleIndicator = (key: string) => {
     setExpandedIndicators(prev => ({
       ...prev,
       [key]: !prev[key]
-    }));
-  };
-
-  const formatIndicatorData = (data: { x: Date; y: number; }[]) => {
-    return data.map(point => ({
-      time: Math.floor(point.x.getTime() / 1000) as UTCTimestamp,
-      value: point.y
     }));
   };
 
@@ -343,7 +368,6 @@ export function Chart({ data, trades, symbol }: ChartProps) {
   }, [data]);
   
   const updateIndicatorParams = (indicatorName: string, key: string, newParams: Record<string, any>) => {
-    console.log(indicatorName, key, newParams)
     setActiveIndicators(prev =>
       prev.map(ind =>
         ind.key === indicatorName ? { ...ind, params: { ...ind.params, [key]: newParams } } : ind
@@ -356,7 +380,6 @@ export function Chart({ data, trades, symbol }: ChartProps) {
       setActiveIndicators(prev => [...prev, { key, params: indicators[key].params }]);
     } else {
       setActiveIndicators(prev => prev.filter(ind => ind.key !== key));
-      // Remove the chart reference when the indicator is removed
       if (SEPARATE_CHART_INDICATORS.includes(key)) {
         if (indicatorChartsRef.current[key]) {
           indicatorChartsRef.current[key].remove();
@@ -366,7 +389,10 @@ export function Chart({ data, trades, symbol }: ChartProps) {
     }
   };
 
-  // Add cleanup for indicator charts
+  const toggleTimeframe = () => {
+    timeframeChanged(timeframe === 'intraday' ? 'daily' : 'intraday');
+  };
+
   useEffect(() => {
     return () => {
       Object.values(indicatorChartsRef.current).forEach(chart => {
@@ -387,7 +413,18 @@ export function Chart({ data, trades, symbol }: ChartProps) {
   return (
     <div className="relative w-full h-full">
       <div className="absolute top-4 left-4 z-10 flex gap-2">
-      <header className='chart-header'>{symbol}</header>
+        <header className='chart-header'>{symbol}</header>
+        {isIntraday && (
+          <button
+            onClick={toggleTimeframe}
+            className={`p-2 rounded-full hover:bg-gray-100 flex items-center gap-1 ${timeframe === 'daily' ? 'bg-gray-200' : ''}`}
+            aria-label="Toggle timeframe"
+            title={`Switch to ${timeframe === 'intraday' ? 'daily' : 'intraday'} view`}
+          >
+            <Clock size={20} />
+            <span className="text-sm">{timeframe === 'daily' ? 'Daily' : 'Intraday'}</span>
+          </button>
+        )}
         <button
           onClick={() => setShowIndicatorSettings(!showIndicatorSettings)}
           className="p-2 rounded-full hover:bg-gray-100"
