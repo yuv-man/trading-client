@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Strategy } from '../types/trading';
 
 interface StrategySelectorProps {
@@ -8,22 +8,51 @@ interface StrategySelectorProps {
 
 export function StrategySelector({ strategies, onStrategySelect }: StrategySelectorProps) {
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
+  const [strategyParams, setStrategyParams] = useState<Record<string, any>>({});
   const [newStrategy, setNewStrategy] = useState('');
   const [registrationStatus, setRegistrationStatus] = useState<{
     message: string;
     type: 'success' | 'error' | null;
   }>({ message: '', type: null });
 
+  useEffect(() => {
+    if (registrationStatus.type) {
+      const timer = setTimeout(() => {
+        setRegistrationStatus({ message: '', type: null });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [registrationStatus]);
+
+  const handleParamChange = (paramName: string, value: string) => {
+    setStrategyParams(prev => ({
+      ...prev,
+      [paramName]: Number(value) || value
+    }));
+  };
+
+  const handleStrategyChange = (strategy: Strategy | null) => {
+    setSelectedStrategy(strategy);
+    if (strategy?.params) {
+      setStrategyParams(strategy.params);
+    } else {
+      setStrategyParams({});
+    }
+  };
+
   const handleStrategyRegistration = async () => {
     if (!selectedStrategy) return;
-    
     try {
-      // Add your backend call here
+      const strategyWithParams = {
+        ...selectedStrategy,
+        params: strategyParams
+      };
+      onStrategySelect(strategyWithParams);
       setRegistrationStatus({
         message: 'Strategy registered successfully!',
         type: 'success'
       });
-      onStrategySelect(selectedStrategy);
+      
     } catch (error) {
       setRegistrationStatus({
         message: 'Failed to register strategy',
@@ -58,44 +87,45 @@ export function StrategySelector({ strategies, onStrategySelect }: StrategySelec
           value={selectedStrategy?.id || ''}
           onChange={(e) => {
             const strategy = strategies.find(s => s.id === e.target.value);
-            setSelectedStrategy(strategy || null);
+            handleStrategyChange(strategy || null);
           }}
           className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         >
           <option value="">Select a strategy...</option>
           {strategies.map((strategy) => (
             <option key={strategy.id} value={strategy.id}>
-              {strategy.name}
+              {strategy.type}
             </option>
           ))}
         </select>
+
+        {selectedStrategy && Object.entries(selectedStrategy.params || {}).map(([param, defaultValue]) => (
+          <div key={param} className="mt-2 flex flex-row items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">{param}</label>
+            <input
+              style={{ width: '70px', paddingLeft: '10px', border: '1px solid #ccc', borderRadius: '5px', height: '20px', fontSize: '12px' }}
+              type="number"
+              value={strategyParams[param] || defaultValue}
+              onChange={(e) => handleParamChange(param, e.target.value)}
+              className="mt-1 w-full shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        ))}
+
         <button
           onClick={handleStrategyRegistration}
           disabled={!selectedStrategy}
-          className="mt-2 bg-green-600 text-white py-1 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
+          className="mt-6 bg-green-600 text-white py-1 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
         >
           Register Strategy
         </button>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Add New Strategy</label>
-        <textarea
-          value={newStrategy}
-          onChange={(e) => setNewStrategy(e.target.value)}
-          className="w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Enter your strategy code here..."
-        />
-        <button
-          onClick={handleNewStrategySubmission}
-          disabled={!newStrategy.trim()}
-          className="mt-2 bg-blue-600 text-white py-1 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400"
-        >
-          Add Strategy
-        </button>
-      </div>
-      {registrationStatus.message && (
-        <div className={`p-3 rounded-md ${registrationStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {registrationStatus.message}
+
+      {registrationStatus.type && (
+        <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${
+          registrationStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          <p className="text-sm font-medium">{registrationStatus.message}</p>
         </div>
       )}
     </div>

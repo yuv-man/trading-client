@@ -1,7 +1,7 @@
 import React from 'react';
 import type { BacktestResult } from '../types/trading';
 import { TrendingUp, DollarSign, BarChart2 } from 'lucide-react';
-import { TradesTable } from './TradesTable';
+import { TradesTable } from './strategy/TradesTable';
 
 interface BacktestResultsProps {
   results: BacktestResult | null;

@@ -3,6 +3,7 @@ import { ChevronDown, Settings, Code } from 'lucide-react';
 import type { Strategy } from '../types/trading';
 import './css/ControlPanel.css';
 import { StrategySelector } from './StrategySelector';
+import { getStrategies, registerStrategy } from '../utils/api';
 
 interface ControlPanelProps {
   onStrategySelect: (strategy: Strategy | null) => void;
@@ -33,14 +34,9 @@ export function ControlPanel({
 }: ControlPanelProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [isStrategyOpen, setIsStrategyOpen] = useState(false);
   const [newStrategy, setNewStrategy] = useState('');
-  const [strategies] = useState([
-    { id: 'sma_cross', name: 'SMA Crossover', description: 'Moving average crossover strategy' },
-    { id: 'rsi_oversold', name: 'RSI Oversold', description: 'RSI oversold bounce strategy' },
-    // Add more predefined strategies as needed
-  ]);
+  const [strategies, setStrategies] = useState([]);
   const [registrationStatus, setRegistrationStatus] = useState<{
     message: string;
     type: 'success' | 'error' | null;
@@ -58,12 +54,18 @@ export function ControlPanel({
     });
   };
 
-  const handleStrategyRegistration = async () => {
-    if (!selectedStrategy) return;
+  const handleStrategyRegistration = async (strategy: Strategy | null) => {
+    if (!strategy) {
+      setRegistrationStatus({
+        message: 'Missing strategy',
+        type: 'error'
+      });
+      return;
+    }
     
     try {
-      // Add your backend call here
-      // const response = await registerStrategy(selectedStrategy);
+      await registerStrategy(strategy, symbol);
+      onStrategySelect(strategy);
       setRegistrationStatus({
         message: 'Strategy registered successfully!',
         type: 'success'
@@ -92,6 +94,14 @@ export function ControlPanel({
         message: 'Invalid strategy code',
         type: 'error'
       });
+    }
+  };
+
+  const toggleStrategyOpen = async () => {
+    setIsStrategyOpen(!isStrategyOpen);
+    if (!isStrategyOpen) {
+      const strategiesFromServer = await getStrategies();
+      setStrategies(strategiesFromServer);
     }
   };
 
@@ -135,6 +145,7 @@ export function ControlPanel({
                 onChange={(e) => onPeriodChange(e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               >
+                <option value="">None</option>
                 <option value="1 D">1 Day</option>
                 <option value="5 D">5 Days</option>
                 <option value="1 M">1 Month</option>
@@ -166,7 +177,7 @@ export function ControlPanel({
         <div>
           <h3
           className="text-lg font-semibold mb-3 flex items-center gap-2 cursor-pointer"
-          onClick={() => setIsStrategyOpen(!isStrategyOpen)}
+          onClick={toggleStrategyOpen}
           >
           <Code size={20} />
           Trading Strategy
@@ -178,7 +189,7 @@ export function ControlPanel({
           {isStrategyOpen && (
           <StrategySelector 
             strategies={strategies}
-            onStrategySelect={onStrategySelect}
+            onStrategySelect={handleStrategyRegistration}
           />
           )}
         </div>

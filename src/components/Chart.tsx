@@ -3,9 +3,9 @@ import { createChart, IChartApi, UTCTimestamp } from 'lightweight-charts';
 import type { ChartData } from '../types/trading';
 import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp, Clock } from 'lucide-react';
 import { indicators } from '../utils/indicators';
-import { IndicatorParams } from './IndicatorParams';
+import { IndicatorParams } from './chart/IndicatorParams';
 import './css/Chart.css';
-import { ChartIndicator } from './ChartIndicator';
+import { ChartIndicator } from './chart/ChartIndicator';
 
 interface ChartProps {
   data: ChartData[];
@@ -199,9 +199,11 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
         type: 'volume',
       },
       priceScaleId: '', 
+    });
+    chart.priceScale('').applyOptions({
       scaleMargins: {
-        top: 0.8,
-        bottom: 0.02,
+        top: timeframe === 'intraday' ? 0.2 : 0.9,
+        bottom: 0,
       }
     });
 

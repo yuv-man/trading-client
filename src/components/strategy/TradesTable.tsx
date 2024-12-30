@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Trade } from '../types/trading';
+import type { Trade } from '../../types/trading';
 
 interface TradesTableProps {
   trades: Trade[];

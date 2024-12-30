@@ -3,11 +3,17 @@ import { StrategyRegistrationPayload, BacktestPayload, StockDataPayload } from '
 
 const API_BASE_URL = 'http://localhost:5001';
 
-export const registerStrategy = async (payload: StrategyRegistrationPayload) => {
+export const registerStrategy = async (payload: StrategyRegistrationPayload, symbol: string) => {
+    const payloadWithSymbol: any = {
+        ...payload,
+        symbol: symbol
+    }
+    payloadWithSymbol['strategy_type'] = payload.type;
+    delete payloadWithSymbol.type;
   try {
     const response = await axios.post(
       `${API_BASE_URL}/register_strategy`,
-      payload
+      payloadWithSymbol
     );
     return response.data;
   } catch (error) {
@@ -32,6 +38,16 @@ export const getStockData = async (payload: StockDataPayload) => {
       return response.data;
     } catch (error) {
       console.error('Error running backtest:', error);
+      throw error;
+    }
+  };
+
+export const getStrategies = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/get_strategies`);
+      return response.data.strategies;
+    } catch (error) {
+      console.error('Error getting strategies:', error);
       throw error;
     }
   };

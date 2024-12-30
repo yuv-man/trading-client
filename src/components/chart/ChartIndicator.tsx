@@ -1,5 +1,5 @@
 import { IChartApi, UTCTimestamp, ISeriesApi } from 'lightweight-charts';
-import type { ChartData } from '../types/trading';
+import type { ChartData } from '../../types/trading';
 import { 
   calculateSMA, 
   calculateRSI, 
@@ -8,7 +8,7 @@ import {
   calculateEMA,
   calculateStochastic,
   calculateADX
-} from '../utils/indicators';
+} from '../../utils/indicators';
 
 interface ChartIndicatorProps {
   chart: IChartApi;

@@ -17,3 +17,8 @@
     width: 70%;
     height: 100%;
 }
+
+.app-backtest-mode {
+    display: flex;
+    justify-content: flex-end;
+}

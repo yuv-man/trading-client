@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import './css/IndicatorParams.css';
-import { Indicator } from '../types/trading';
+import '../css/IndicatorParams.css';
+import { Indicator } from '../../types/trading';
 
 interface IndicatorParamsProps {
   indicator: Indicator;

@@ -20,8 +20,8 @@ export interface Indicator {
 
 export interface Strategy {
   id: string;
-  name: string;
-  description: string;
+  type: string;
+  params: Record<string, number>;
 }
 
 export interface BacktestResult {
@@ -44,8 +44,7 @@ export interface Trade {
 }
 
 export interface StrategyRegistrationPayload {
-  strategy_type: string;
-  symbol: string;
+  type: string;
   params: Record<string, unknown>;
 }
 
