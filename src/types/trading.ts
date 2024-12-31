@@ -27,19 +27,45 @@ export interface Strategy {
 export interface BacktestResult {
   trades: Trade[];
   performance: {
-    totalProfit: number;
-    winRate: number;
-    totalTrades: number;
-    averageProfit: number;
+    Total: {
+      net_profit: number;
+      winning_rate: number;
+      total_trades: number;
+      avg_trade: number;
+    };
+    Long: {
+      net_profit: number;
+      winning_rate: number;
+      total_trades: number;
+      avg_trade: number;
+    };
+    Short: {
+      net_profit: number;
+      winning_rate: number;
+      total_trades: number;
+      avg_trade: number;
+    };
   };
+  max_drawdown: number;
+  start_date: string;
+  end_date: string;
+  buy_and_hold_profit: number;
+  buy_and_hold_profit_pct: number;
+  initial_capital: number;
+  current_capital: number;
 }
 
 export interface Trade {
-  entryTime: string;
-  exitTime: string;
-  entryPrice: number;
-  exitPrice: number;
+  duration: string;
+  entry_time: string;
+  exit_time: string;
+  entry_price: number;
+  exit_price: number;
   profit: number;
+  profit_percentage: number;
+  portfolio_value: number;
+  position: number;
+  size: number;
   type: 'LONG' | 'SHORT';
 }
 

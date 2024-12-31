@@ -1,7 +1,6 @@
 import React from 'react';
 import type { BacktestResult } from '../types/trading';
 import { TrendingUp, DollarSign, BarChart2 } from 'lucide-react';
-import { TradesTable } from './strategy/TradesTable';
 
 interface BacktestResultsProps {
   results: BacktestResult | null;
@@ -9,13 +8,15 @@ interface BacktestResultsProps {
 
 export function BacktestResults({ results }: BacktestResultsProps) {
   if (!results || !results.performance) return null;
+  console.log(results);
 
   const {
-    totalProfit = 0,
-    winRate = 0,
-    totalTrades = 0,
-    averageProfit = 0
-  } = results.performance;
+    net_profit = 0,
+    winning_rate = 0,
+    total_trades = 0,
+    avg_trade = 0
+  } = results.performance.Total;
+
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -25,9 +26,9 @@ export function BacktestResults({ results }: BacktestResultsProps) {
         <div className="bg-blue-50 p-4 rounded-lg">
           <div className="flex items-center gap-2 text-blue-600 mb-2">
             <DollarSign size={20} />
-            <span className="font-medium">Total Profit</span>
+            <span className="font-medium">NetProfit</span>
           </div>
-          <span className="text-2xl font-bold">${totalProfit.toFixed(2)}</span>
+          <span className="text-xl font-bold">${net_profit.toFixed(2)}</span>
         </div>
         
         <div className="bg-green-50 p-4 rounded-lg">
@@ -35,7 +36,7 @@ export function BacktestResults({ results }: BacktestResultsProps) {
             <TrendingUp size={20} />
             <span className="font-medium">Win Rate</span>
           </div>
-          <span className="text-2xl font-bold">{(winRate * 100).toFixed(1)}%</span>
+          <span className="text-xl font-bold">{winning_rate}%</span>
         </div>
         
         <div className="bg-purple-50 p-4 rounded-lg">
@@ -43,7 +44,7 @@ export function BacktestResults({ results }: BacktestResultsProps) {
             <BarChart2 size={20} />
             <span className="font-medium">Total Trades</span>
           </div>
-          <span className="text-2xl font-bold">{totalTrades}</span>
+          <span className="text-xl font-bold">{total_trades}</span>
         </div>
         
         <div className="bg-orange-50 p-4 rounded-lg">
@@ -51,11 +52,9 @@ export function BacktestResults({ results }: BacktestResultsProps) {
             <DollarSign size={20} />
             <span className="font-medium">Avg. Profit</span>
           </div>
-          <span className="text-2xl font-bold">${averageProfit.toFixed(2)}</span>
+          <span className="text-xl font-bold">${avg_trade.toFixed(2)}</span>
         </div>
       </div>
-
-      <TradesTable trades={results.trades} />
     </div>
   );
 }

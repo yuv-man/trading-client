@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { createChart, IChartApi, UTCTimestamp } from 'lightweight-charts';
-import type { ChartData } from '../types/trading';
+import { createChart, IChartApi, UTCTimestamp, Time, SeriesMarker } from 'lightweight-charts';
+import type { ChartData, Trade } from '../types/trading';
 import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp, Clock } from 'lucide-react';
 import { indicators } from '../utils/indicators';
 import { IndicatorParams } from './chart/IndicatorParams';
@@ -10,11 +10,7 @@ import { ChartIndicator } from './chart/ChartIndicator';
 interface ChartProps {
   data: ChartData[];
   symbol: string;
-  trades?: {
-    time: string;
-    price: number;
-    type: 'buy' | 'sell';
-  }[];
+  trades?: Trade[];
   isIntraday: boolean;
   timeframe: 'intraday' | 'daily';
   timeframeChanged: (timeframe: 'intraday' | 'daily') => void;
@@ -187,9 +183,9 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
           time: Math.floor(new Date(d.time).getTime() / 1000) as UTCTimestamp,
           position: d.pivot_point === 'peak' ? 'aboveBar' : 'belowBar',
           color: d.pivot_point === 'peak' ? '#26a69a' : '#ef5350',
-          shape: d.pivot_point === 'peak' ? 'arrowDown' : 'arrowUp',
+          shape: 'circle',
         }));
-      candlestickSeries.setMarkers(markers);
+      candlestickSeries.setMarkers(markers as SeriesMarker<Time>[]);
     }
 
     // Add volume series
@@ -202,7 +198,7 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
     });
     chart.priceScale('').applyOptions({
       scaleMargins: {
-        top: timeframe === 'intraday' ? 0.2 : 0.9,
+        top: timeframe === 'intraday' ? 0.5 : 0.9,
         bottom: 0,
       }
     });
@@ -218,18 +214,56 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
     );
 
     // Add trades markers if available
-    if (trades?.length) {
-      const tradeMarkers = trades.map(trade => ({
-        time: Math.floor(new Date(trade.time).getTime() / 1000) as UTCTimestamp,
-        position: trade.type === 'buy' ? 'belowBar' : 'aboveBar',
-        color: trade.type === 'buy' ? '#26a69a' : '#ef5350',
-        shape: trade.type === 'buy' ? 'arrowUp' : 'arrowDown',
-        text: `${trade.type.toUpperCase()} @ ${trade.price}`
-      }));
-      candlestickSeries.setMarkers(tradeMarkers);
+    if (trades?.length && timeframe === 'intraday') {
+      // Create markers and validate timestamps
+      const tradeMarkers = trades
+        .flatMap(trade => {
+          const entryTime = new Date(trade.entry_time).getTime();
+          const exitTime = new Date(trade.exit_time).getTime();
+          
+          // Validate timestamps
+          if (isNaN(entryTime) || isNaN(exitTime)) {
+            console.warn('Invalid timestamp detected:', { trade });
+            return [];
+          }
+    
+          return [
+            {
+              time: Math.floor(entryTime / 1000) as UTCTimestamp,
+              position: trade.type === 'LONG' ? 'belowBar' : 'aboveBar' as const,
+              color: trade.type === 'LONG' ? '#26a69a' : '#ef5350',
+              shape: trade.type === 'LONG' ? 'arrowUp' : 'arrowDown',
+              text: `${trade.type.toUpperCase()} ENTRY @ ${trade.entry_price}`
+            },
+            {
+              time: Math.floor(exitTime / 1000) as UTCTimestamp,
+              position: trade.type === 'LONG' ? 'aboveBar' : 'belowBar' as const,
+              color: trade.type === 'LONG' ? '#ef5350' : '#26a69a',
+              shape: trade.type === 'LONG' ? 'arrowDown' : 'arrowUp',
+              text: `${trade.type.toUpperCase()} EXIT @ ${trade.exit_price}`
+            }
+          ];
+        })
+        .filter(marker => marker !== null)
+        // Sort markers by timestamp in ascending order
+        .sort((a, b) => a.time - b.time);
+    
+      // Only set markers if we have valid data
+      if (tradeMarkers.length > 0) {
+        candlestickSeries.setMarkers(tradeMarkers as SeriesMarker<Time>[]);
+      } else {
+        console.warn('No valid trade markers to display');
+      }
     }
 
     chart.timeScale().fitContent();
+    const totalBars = formattedData.length;
+    const visibleBars = 100;
+    
+    chart.timeScale().setVisibleLogicalRange({
+      from: Math.max(totalBars - visibleBars, 0),
+      to: totalBars
+    });
 
     return chart;
   };

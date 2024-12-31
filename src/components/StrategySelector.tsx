@@ -3,11 +3,12 @@ import type { Strategy } from '../types/trading';
 
 interface StrategySelectorProps {
   strategies: Strategy[];
+  selectedStrategy: Strategy | null;
   onStrategySelect: (strategy: Strategy | null) => void;
+  onStrategyChange: (strategy: Strategy | null) => void;
 }
 
-export function StrategySelector({ strategies, onStrategySelect }: StrategySelectorProps) {
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
+export function StrategySelector({ strategies, onStrategySelect, onStrategyChange, selectedStrategy }: StrategySelectorProps) {
   const [strategyParams, setStrategyParams] = useState<Record<string, any>>({});
   const [newStrategy, setNewStrategy] = useState('');
   const [registrationStatus, setRegistrationStatus] = useState<{
@@ -32,7 +33,7 @@ export function StrategySelector({ strategies, onStrategySelect }: StrategySelec
   };
 
   const handleStrategyChange = (strategy: Strategy | null) => {
-    setSelectedStrategy(strategy);
+    onStrategyChange(strategy);
     if (strategy?.params) {
       setStrategyParams(strategy.params);
     } else {
@@ -114,20 +115,12 @@ export function StrategySelector({ strategies, onStrategySelect }: StrategySelec
 
         <button
           onClick={handleStrategyRegistration}
-          disabled={!selectedStrategy}
+          disabled={!selectedStrategy || registrationStatus.type === 'success'}
           className="mt-6 bg-green-600 text-white py-1 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
         >
           Register Strategy
         </button>
       </div>
-
-      {registrationStatus.type && (
-        <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${
-          registrationStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          <p className="text-sm font-medium">{registrationStatus.message}</p>
-        </div>
-      )}
     </div>
   );
 } 

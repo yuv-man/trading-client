@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Settings, Code } from 'lucide-react';
 import type { Strategy } from '../types/trading';
 import './css/ControlPanel.css';
@@ -8,8 +8,9 @@ import { getStrategies, registerStrategy } from '../utils/api';
 interface ControlPanelProps {
   onStrategySelect: (strategy: Strategy | null) => void;
   onBacktest: (params: {
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
+    period?: string;
     interval: string;
     symbol: string;
   }) => void;
@@ -37,18 +38,44 @@ export function ControlPanel({
   const [isStrategyOpen, setIsStrategyOpen] = useState(false);
   const [newStrategy, setNewStrategy] = useState('');
   const [strategies, setStrategies] = useState([]);
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [registrationStatus, setRegistrationStatus] = useState<{
     message: string;
     type: 'success' | 'error' | null;
   }>({ message: '', type: null });
 
   const [localSymbol, setLocalSymbol] = useState(symbol);
+  const [activeView, setActiveView] = useState<'parameters' | 'strategy'>('parameters');
+
+  useEffect(() => {
+    if (registrationStatus.type) {
+      const timer = setTimeout(() => {
+        setRegistrationStatus({ message: '', type: null });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [registrationStatus]);
 
   const handleBacktest = () => {
-    if (!startDate || !endDate || !symbol) return;
+    console.log(startDate, endDate, period, interval, symbol);
+    if (((!startDate || !endDate) && !period) || !symbol) {
+      setRegistrationStatus({
+        message: 'Missing parameters',
+        type: 'error'
+      })
+      return;
+    }
+    if (!selectedStrategy) {
+      setRegistrationStatus({
+        message: 'Missing strategy',
+        type: 'error'
+      })
+      return;
+    }
     onBacktest({
       startDate,
       endDate,
+      period,
       interval,
       symbol,
     });
@@ -105,14 +132,44 @@ export function ControlPanel({
     }
   };
 
+  const onStrategyChange = (strategy: Strategy | null) => {
+    setSelectedStrategy(strategy);
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+        <div className="flex space-x-4 mb-4 justify-center">
+          <button
+            onClick={() => setActiveView('parameters')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+              activeView === 'parameters'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
             <Settings size={20} />
             Trading Parameters
-          </h3>
+          </button>
+          <button
+            onClick={() => {
+              setActiveView('strategy');
+              if (!strategies.length) {
+                getStrategies().then(setStrategies);
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+              activeView === 'strategy'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Code size={20} />
+            Trading Strategy
+          </button>
+        </div>
+
+        {activeView === 'parameters' && (
           <div className="control-panel-container">
             <div className="control-panel-field">
               <label className="block text-sm font-medium text-gray-700">Symbol</label>
@@ -172,27 +229,16 @@ export function ControlPanel({
               />
             </div>
           </div>
-        </div>
+        )}
 
-        <div>
-          <h3
-          className="text-lg font-semibold mb-3 flex items-center gap-2 cursor-pointer"
-          onClick={toggleStrategyOpen}
-          >
-          <Code size={20} />
-          Trading Strategy
-          <ChevronDown 
-            size={16} 
-            className={`transform transition-transform ${isStrategyOpen ? 'rotate-180' : ''}`} 
-          />
-          </h3>
-          {isStrategyOpen && (
+        {activeView === 'strategy' && (
           <StrategySelector 
             strategies={strategies}
             onStrategySelect={handleStrategyRegistration}
+            selectedStrategy={selectedStrategy}
+            onStrategyChange={onStrategyChange}
           />
-          )}
-        </div>
+        )}
 
         <button
           onClick={handleBacktest}
@@ -201,6 +247,13 @@ export function ControlPanel({
           Run Backtest
         </button>
       </div>
+      {registrationStatus.type && (
+        <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${
+          registrationStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          <p className="text-sm font-medium">{registrationStatus.message}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Chart } from './components/Chart';
 import { ControlPanel } from './components/ControlPanel';
 import { BacktestResults } from './components/BacktestResults';
 import type { BacktestResult, ChartData, Strategy } from './types/trading';
-import { registerStrategy, runBacktest, getStockData } from './utils/api';
+import { runBacktest, getStockData } from './utils/api';
 import BacktestSheet from './components/strategy/BacktestSheet';
 import { FaChartBar, FaCode, FaCog } from 'react-icons/fa';
 
@@ -25,34 +25,28 @@ export default function App() {
   };
 
   const handleBacktest = async (params: {
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
     interval: string;
-    period: string;
+    period?: string;
     symbol: string;
   }) => {
-    // Here you would make an API call to your backend
-    // For now, we'll simulate a response
-    const simulatedResults: BacktestResult = {
-      trades: [
-        {
-          entryTime: '2024-01-01',
-          exitTime: '2024-01-02',
-          entryPrice: 150,
-          exitPrice: 156,
-          profit: 6,
-          type: 'LONG',
-        },
-      ],
-      performance: {
-        totalProfit: 1250.50,
-        winRate: 0.65,
-        totalTrades: 24,
-        averageProfit: 52.10,
-      },
+    const res = await runBacktest(params);
+    if(res.status === 'success') {
+      const resultsFromServer = res.results.data;
+      const results: BacktestResult = {
+        trades: resultsFromServer.trades,
+        performance: resultsFromServer.metrics,
+        max_drawdown: resultsFromServer.max_drawdown,
+        start_date: resultsFromServer.start_date,
+        end_date: resultsFromServer.end_date,
+        buy_and_hold_profit: resultsFromServer.buy_and_hold_profit,
+        buy_and_hold_profit_pct: resultsFromServer.buy_and_hold_profit_pct,
+        initial_capital: resultsFromServer.initial_capital,
+        current_capital: resultsFromServer.current_capital,
+      }
+      setBacktestResults(results);
     };
-    
-    setBacktestResults(simulatedResults);
   };
 
   const handleStockData = React.useCallback(async (params: {
@@ -186,11 +180,7 @@ export default function App() {
                   <Chart
                     symbol={symbol}
                     data={timeframe === 'intraday' ? intradayData : dailyData}
-                    trades={backtestResults?.trades.map(trade => ({
-                      time: trade.entryTime,
-                      price: trade.entryPrice,
-                      type: 'buy',
-                    }))}
+                    trades={backtestResults?.trades}
                     timeframeChanged={toggleTimeframe}
                     timeframe={timeframe}
                     isIntraday={isIntraday(interval)}
@@ -207,6 +197,7 @@ export default function App() {
               symbol={symbol} 
               period={period}
               interval={interval} 
+              strategy_name={selectedStrategy?.type}
             />
           )}
 
