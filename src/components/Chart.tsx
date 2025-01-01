@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createChart, IChartApi, UTCTimestamp, Time, SeriesMarker } from 'lightweight-charts';
 import type { ChartData, Trade } from '../types/trading';
-import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp, Clock } from 'lucide-react';
+import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp, Clock, BarChart2 } from 'lucide-react';
 import { indicators } from '../utils/indicators';
 import { IndicatorParams } from './chart/IndicatorParams';
 import './css/Chart.css';
@@ -30,6 +30,7 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
   const [activeIndicators, setActiveIndicators] = useState<IndicatorState[]>([]);
   const [showTrends, setShowTrends] = useState(false);
   const trendLinesRef = useRef<any[]>([]);
+  const [showVolume, setShowVolume] = useState(true);
 
   // Add this to track which indicators need separate charts
   const SEPARATE_CHART_INDICATORS = ['RSI', 'MACD', 'Stochastic', 'ADX'];
@@ -187,31 +188,32 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
         }));
       candlestickSeries.setMarkers(markers as SeriesMarker<Time>[]);
     }
-
-    // Add volume series
-    const volumeSeries = chart.addHistogramSeries({
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      priceScaleId: '', 
-    });
-    chart.priceScale('').applyOptions({
-      scaleMargins: {
-        top: timeframe === 'intraday' ? 0.5 : 0.9,
-        bottom: 0,
-      }
-    });
-
     candlestickSeries.setData(formattedData);
+    // Add volume series
+    if (showVolume) {
+      const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: {
+          type: 'volume',
+        },
+        priceScaleId: ''
+      });
 
-    volumeSeries.setData(
-      formattedData.map(d => ({
-        time: d.time,
-        value: d.volume,
-        color: d.close >= d.open ? '#26a69a' : '#ef5350'
-      }))
-    );
+      chart.priceScale('').applyOptions({
+        scaleMargins: {
+          top: timeframe === 'intraday' ? 0.5 : 0.9,
+          bottom: 0,
+        }
+      });
+      
+      volumeSeries.setData(
+        formattedData.map(d => ({
+          time: d.time,
+          value: d.volume,
+          color: d.close >= d.open ? '#26a69a' : '#ef5350'
+        }))
+      );
+    }
 
     // Add trades markers if available
     if (trades?.length && timeframe === 'intraday') {
@@ -377,13 +379,17 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
       chart.remove();
       window.removeEventListener('resize', handleResize);
     };
-  }, [data, trades, activeIndicators, showTrends, timeframe]);
+  }, [data, trades, activeIndicators, showTrends, timeframe, showVolume]);
 
   const toggleIndicator = (key: string) => {
     setExpandedIndicators(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  const toggleVolume = () => {
+    setShowVolume(!showVolume);
   };
 
   const addIndicatorToChart = useCallback((chart: IChartApi, indicator: IndicatorState) => {
@@ -461,6 +467,14 @@ export function Chart({ data, trades, symbol, isIntraday, timeframe, timeframeCh
             <span className="text-sm">{timeframe === 'daily' ? 'Daily' : 'Intraday'}</span>
           </button>
         )}
+        <button
+          onClick={toggleVolume}
+          className={`p-2 rounded-full hover:bg-gray-100 ${showVolume ? 'bg-gray-200' : ''}`}
+          aria-label="Toggle volume"
+          title="Toggle volume"
+        >
+          <BarChart2 size={20} />
+        </button>
         <button
           onClick={() => setShowIndicatorSettings(!showIndicatorSettings)}
           className="p-2 rounded-full hover:bg-gray-100"

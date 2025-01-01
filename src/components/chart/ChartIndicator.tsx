@@ -1,4 +1,4 @@
-import { IChartApi, UTCTimestamp, ISeriesApi } from 'lightweight-charts';
+import { IChartApi, UTCTimestamp, ISeriesApi, TimeRangeChangeEventHandler, Time, LogicalRangeChangeEventHandler } from 'lightweight-charts';
 import type { ChartData } from '../../types/trading';
 import { 
   calculateSMA, 
@@ -30,6 +30,20 @@ const seriesRefs = {
 };
 
 export function ChartIndicator({ chart, indicator, data, indicatorChart }: ChartIndicatorProps) {
+  if (indicatorChart) {
+    const syncCharts = (sourceChart: IChartApi, targetChart: IChartApi) => {
+      const handleRangeChange: LogicalRangeChangeEventHandler = (range) => {
+        if (!range) return;
+        targetChart.timeScale().setVisibleLogicalRange(range);
+      };
+      sourceChart.timeScale().subscribeVisibleLogicalRangeChange(handleRangeChange);
+    };
+
+    // Sync both ways
+    syncCharts(chart, indicatorChart);
+    syncCharts(indicatorChart, chart);
+  }
+
   const formatIndicatorData = (data: { x: Date; y: number; }[]) => {
     return data.map(point => ({
       time: Math.floor(point.x.getTime() / 1000) as UTCTimestamp,
@@ -104,6 +118,23 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
               minMove: 0.01,
               formatter: (price: number) => price.toFixed(2),
             },
+          });
+
+          // Add horizontal lines at 30 and 70
+          seriesRefs.rsiSeries.createPriceLine({
+            price: 30,
+            color: 'rgba(255, 70, 70, 0.5)',
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+          });
+
+          seriesRefs.rsiSeries.createPriceLine({
+            price: 70,
+            color: 'rgba(255, 70, 70, 0.5)',
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
           });
           
           const rsiData = formatIndicatorData(calculateRSI(data, params.period || 14));
@@ -228,6 +259,23 @@ export function ChartIndicator({ chart, indicator, data, indicatorChart }: Chart
               minMove: 0.01,
               formatter: (price: number) => price.toFixed(2),
             },
+          });
+
+          // Add horizontal lines at 30 and 70
+          seriesRefs.stochasticSeries.createPriceLine({
+            price: 30,
+            color: 'rgba(255, 70, 70, 0.5)',
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+          });
+
+          seriesRefs.stochasticSeries.createPriceLine({
+            price: 70,
+            color: 'rgba(255, 70, 70, 0.5)',
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
           });
           
           const stochasticData = formatIndicatorData(calculateStochastic(
