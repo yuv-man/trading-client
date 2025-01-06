@@ -3,6 +3,7 @@ import './App.css';
 import { Chart } from './components/Chart';
 import { ControlPanel } from './components/ControlPanel';
 import { BacktestResults } from './components/BacktestResults';
+import { OptimizerMain } from './components/optimizer/OptimizerMain';
 import type { BacktestResult, ChartData, Strategy } from './types/trading';
 import { runBacktest, getStockData } from './utils/api';
 import BacktestSheet from './components/strategy/BacktestSheet';
@@ -130,7 +131,7 @@ export default function App() {
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold mb-8">Stock Trading Analysis</h1>
           
-          <div className="mb-6">
+          {activeView !== 'optimize' && <div className="mb-6">
             <div className="app-backtest-mode">
               <div className="inline-flex rounded-md shadow-sm" role="group">
                 <button
@@ -157,7 +158,7 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>}
 
 
           {activeView === 'chart' && (
@@ -204,7 +205,7 @@ export default function App() {
           {activeView === 'optimize' && (
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-bold mb-4">Strategy Optimization</h2>
-              {/* Add Optimization component here */}
+              <OptimizerMain />
             </div>
           )}
         </div>

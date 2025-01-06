@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { StrategyRegistrationPayload, BacktestPayload, StockDataPayload } from '../types/trading';
+import { StrategyRegistrationPayload, BacktestPayload, StockDataPayload, Parameter } from '../types/trading';
 
 const API_BASE_URL = 'http://localhost:5001';
 
@@ -51,6 +51,40 @@ export const getStrategies = async () => {
       throw error;
     }
   };
+
+export const optimizeFromServer = async (strategy_type: string, parameters: Parameter[], optimize_target: string,
+        symbol: string, interval: string, period?: string, startTime?: string, endTime?: string) => {
+    // Transform parameters into required format
+    const param_ranges: { [key: string]: { range: number[] } } = {};
+    const initial_guess: number[] = [];
+    
+    parameters.forEach((param: Parameter) => {
+        param_ranges[param.name] = {
+            range: [param.min, param.max, param.step],
+        };
+        initial_guess.push(param.initialGuess);
+    });
+
+    const payload = {
+        strategy_type,
+        param_ranges,
+        initial_guess,
+        symbol,
+        interval,
+        period,
+        startTime,
+        endTime,
+        optimize_target
+    }
+
+    try {
+        const response = await axios.post(`${API_BASE_URL}/optimize_strategy`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error optimizing strategy:', error);
+        throw error;
+    }
+};    
 
 
 // const payload = {

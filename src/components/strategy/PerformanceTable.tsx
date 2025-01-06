@@ -11,7 +11,7 @@ interface PerformanceTableProps {
   const PerformanceTable: React.FC<PerformanceTableProps> = ({ results }) => {
     const formatCurrency = (value: number) => {
       const isNegative = value < 0;
-      const formattedValue = `$ ${Math.abs(value).toFixed(2)}`;
+      const formattedValue = `$ ${value.toFixed(2)}`;
       return {
         value: isNegative ? `(${formattedValue})` : formattedValue,
         isNegative
@@ -20,7 +20,7 @@ interface PerformanceTableProps {
   
     const formatPercentage = (value: number) => {
       const isNegative = value < 0;
-      const formattedValue = `${Math.abs(value).toFixed(2)} %`;
+      const formattedValue = `${value.toFixed(2)} %`;
       return {
         value: isNegative ? `(${formattedValue})` : formattedValue,
         isNegative
@@ -29,7 +29,7 @@ interface PerformanceTableProps {
   
     const formatNumber = (value: number) => {
       const isNegative = value < 0;
-      const formattedValue = Math.abs(Math.round(value)).toString();
+      const formattedValue = Math.round(value).toString();
       return {
         value: isNegative ? `(${formattedValue})` : formattedValue,
         isNegative

@@ -124,14 +124,6 @@ export function ControlPanel({
     }
   };
 
-  const toggleStrategyOpen = async () => {
-    setIsStrategyOpen(!isStrategyOpen);
-    if (!isStrategyOpen) {
-      const strategiesFromServer = await getStrategies();
-      setStrategies(strategiesFromServer);
-    }
-  };
-
   const onStrategyChange = (strategy: Strategy | null) => {
     setSelectedStrategy(strategy);
   };

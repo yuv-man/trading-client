@@ -9,8 +9,7 @@ interface StrategySelectorProps {
 }
 
 export function StrategySelector({ strategies, onStrategySelect, onStrategyChange, selectedStrategy }: StrategySelectorProps) {
-  const [strategyParams, setStrategyParams] = useState<Record<string, any>>({});
-  const [newStrategy, setNewStrategy] = useState('');
+  const [strategyParams, setStrategyParams] = useState<Record<string, number>>({});
   const [registrationStatus, setRegistrationStatus] = useState<{
     message: string;
     type: 'success' | 'error' | null;
@@ -28,7 +27,7 @@ export function StrategySelector({ strategies, onStrategySelect, onStrategyChang
   const handleParamChange = (paramName: string, value: string) => {
     setStrategyParams(prev => ({
       ...prev,
-      [paramName]: Number(value) || value
+      [paramName]: Number(value) || 0
     }));
   };
 
@@ -57,24 +56,6 @@ export function StrategySelector({ strategies, onStrategySelect, onStrategyChang
     } catch (error) {
       setRegistrationStatus({
         message: 'Failed to register strategy',
-        type: 'error'
-      });
-    }
-  };
-
-  const handleNewStrategySubmission = async () => {
-    if (!newStrategy.trim()) return;
-    
-    try {
-      // Add your backend validation call here
-      setRegistrationStatus({
-        message: 'New strategy added successfully!',
-        type: 'success'
-      });
-      setNewStrategy('');
-    } catch (error) {
-      setRegistrationStatus({
-        message: 'Invalid strategy code',
         type: 'error'
       });
     }

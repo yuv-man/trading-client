@@ -1,6 +1,6 @@
 export function formatDate(str:string) {
     let year, month, day;
-
+    if(!str) return "";
     if (str.length === 8) {
         // For format YYYYMMDD
         year = str.slice(0, 4);

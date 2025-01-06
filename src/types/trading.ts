@@ -62,7 +62,7 @@ export interface Trade {
   entry_price: number;
   exit_price: number;
   profit: number;
-  profit_percentage: number;
+  profit_pct: number;
   portfolio_value: number;
   position: number;
   size: number;
@@ -81,10 +81,40 @@ export interface BacktestPayload {
     interval: string;
   }
 
+  export interface OptimizeStrategyPayload {
+    strategy_type: string;
+    param_ranges: Record<string, number[]>;
+    initial_guess: number[];
+    symbol: string;
+    optimize_target: string;
+    interval: string;
+    period: string;
+  }
+
 export interface StockDataPayload {
     symbol: string;
     start_date?: string;
     end_date?: string;
     period?: string;
     interval: string;
+  }
+
+  export interface Parameter {
+    name: string;
+    min: number;
+    max: number;
+    step: number;
+    initialGuess: number;
+  }
+
+  export interface OptimizationResult {
+    best_parameters: { [key: string]: number };
+    best_performance: {data: {
+      metrics: {
+        Total: Record<string, number>,
+        Long: Record<string, number>,
+        Short: Record<string, number>
+      },
+      max_drawdown: number;
+    }};
   }
