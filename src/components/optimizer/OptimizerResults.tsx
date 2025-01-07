@@ -52,7 +52,7 @@ export function OptimizerResults({ optimizationResult }: { optimizationResult: O
     },
     {
       title: "Win Rate",
-      value: optimizationResult.best_performance.data.metrics.Total.winning_rate * 100,
+      value: optimizationResult.best_performance.data.metrics.Total.winning_rate,
       icon: <Target size={20} className="text-orange-500" />,
       suffix: "%",
       precision: 2,
