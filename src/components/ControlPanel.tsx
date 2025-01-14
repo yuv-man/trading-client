@@ -3,7 +3,7 @@ import { ChevronDown, Settings, Code } from 'lucide-react';
 import type { Strategy } from '../types/trading';
 import './css/ControlPanel.css';
 import { StrategySelector } from './StrategySelector';
-import { getStrategies, registerStrategy } from '../utils/api';
+import { tradingService } from '../utils/api';
 
 interface ControlPanelProps {
   onStrategySelect: (strategy: Strategy | null) => void;
@@ -91,7 +91,7 @@ export function ControlPanel({
     }
     
     try {
-      await registerStrategy(strategy, symbol);
+      await tradingService.registerStrategy(strategy, symbol);
       onStrategySelect(strategy);
       setRegistrationStatus({
         message: 'Strategy registered successfully!',
@@ -140,14 +140,14 @@ export function ControlPanel({
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <Settings size={20} />
-            Trading Parameters
+            <Settings size={16} />
+            Parameters
           </button>
           <button
             onClick={() => {
               setActiveView('strategy');
               if (!strategies.length) {
-                getStrategies().then(setStrategies);
+                tradingService.getStrategies().then(setStrategies);
               }
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
@@ -156,8 +156,8 @@ export function ControlPanel({
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <Code size={20} />
-            Trading Strategy
+            <Code size={16} />
+            Strategy
           </button>
         </div>
 
@@ -234,7 +234,7 @@ export function ControlPanel({
 
         <button
           onClick={handleBacktest}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          className="w-full bg-custom-orange text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
         >
           Run Backtest
         </button>

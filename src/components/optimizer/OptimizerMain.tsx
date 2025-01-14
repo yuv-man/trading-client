@@ -11,7 +11,7 @@ import {
 import '../css/Optimizer.css';
 import { createChart, IChartApi } from 'lightweight-charts';
 import { Strategy, Parameter, OptimizationResult } from '../../types/trading';
-import { getStrategies, optimizeFromServer } from '../../utils/api';
+import { tradingService } from '../../utils/api';
 import { OptimizerResults } from './OptimizerResults';
 
 export function OptimizerMain() {
@@ -67,7 +67,7 @@ export function OptimizerMain() {
 
   useEffect(() => {
     const getStrategiesFromServer = async () => {
-      const strategiesFromServer = await getStrategies();
+      const strategiesFromServer = await tradingService.getStrategies();
       setStrategies(strategiesFromServer);
     }
     getStrategiesFromServer();
@@ -93,8 +93,7 @@ export function OptimizerMain() {
       return;
     }
     const strategy_type = strategy?.type;
-    const results = await optimizeFromServer(strategy_type, parameters, optimizeTarget, symbol, interval, period, startTime, endTime)
-    return results;
+    return await tradingService.optimizeStrategy(strategy_type, parameters, optimizeTarget, symbol, interval, period, startTime, endTime);
   };
 
   const handleOptimize = async () => {
@@ -116,7 +115,7 @@ export function OptimizerMain() {
   };
 
   return (
-    <div className="p-6">
+    <div>
       <Card title="Strategy Optimizer">
         <div className="flex gap-6">
           <div className="w-1/3">
