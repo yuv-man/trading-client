@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { StrategyRegistrationPayload, BacktestPayload, StockDataPayload, Parameter } from '../types/trading';
+import { StrategyRegistrationPayload, BacktestPayload, StockDataPayload, Parameter, StartTradingPayload } from '../types/trading';
 
 import io from 'socket.io-client';
 
@@ -96,11 +96,11 @@ class TradingService {
     }
 
     // REST API Methods
-    async login(username, password) {
+    async login(username: string, password: string) {
         return this.api.post('/login', { username, password });
     }
 
-    async register(username, password, email) {
+    async register(username: string, password: string, email: string) {
         return this.api.post('/register', { username, password, email });
     }
 
@@ -109,20 +109,37 @@ class TradingService {
     }
 
     async getOrders() {
-        return this.api.get('/orders');
+        try {
+            const response = await this.api.get('/orders');
+            return response.data;
+        } catch (error) {
+            console.error('Error getting orders:', error);
+            throw error;
+        }
     }
 
     async getWatchlist() {
         return this.api.get('/watchlist');
     }
 
-    async addToWatchlist(symbol) {
+    async addToWatchlist(symbol: string) {
         return this.api.post('/watchlist', { symbol });
     }
 
-    async getMarketHistory(symbol) {
+    async getMarketHistory(symbol: string) {
         return this.api.get(`/market/history/${symbol}`);
     }
+
+    async getAccountValue() {
+        try {
+            const response = await this.api.get(`/get_account_value`);
+            const availableFund = response.data?.account_value?.availableFunds;
+            return availableFund;
+        } catch (error) {
+            console.error('Error getting account value:', error);
+            throw error;
+        }
+    }   
 
     // New API Methods
     async registerStrategy(payload: StrategyRegistrationPayload, symbol: string) {
@@ -209,6 +226,16 @@ class TradingService {
             return response.data;
         } catch (error) {
             console.error('Error optimizing strategy:', error);
+            throw error;
+        }
+    }
+
+    async startTrading(payload: StartTradingPayload) {
+        try {
+            const response = await this.api.post('/start_trading', payload);
+            return response.data;
+        } catch (error) {
+            console.error('Error starting trading:', error);
             throw error;
         }
     }

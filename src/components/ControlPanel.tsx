@@ -129,15 +129,15 @@ export function ControlPanel({
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="space-y-6">
-        <div className="flex space-x-4 mb-4 justify-center">
+    <div className="bg-white rounded-lg shadow-md">
+      <div >
+        <div className="flex bg-gray-100 p-1 rounded-t-lg">
           <button
             onClick={() => setActiveView('parameters')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+            className={`relative flex items-center gap-2 px-6 py-2 min-w-[120px] rounded-t-lg text-sm transition-colors ${
               activeView === 'parameters'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-gray-800'
+                : 'hover:bg-gray-200 text-gray-600'
             }`}
           >
             <Settings size={16} />
@@ -150,94 +150,95 @@ export function ControlPanel({
                 tradingService.getStrategies().then(setStrategies);
               }
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+            className={`relative flex items-center gap-2 px-6 py-2 min-w-[120px] rounded-t-lg text-sm transition-colors ${
               activeView === 'strategy'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-gray-800'
+                : 'hover:bg-gray-200 text-gray-600'
             }`}
           >
             <Code size={16} />
             Strategy
           </button>
         </div>
+        <div className="bg-white p-6">
+          {activeView === 'parameters' && (
+            <div className="control-panel-container">
+              <div className="control-panel-field">
+                <label className="block text-sm font-medium text-gray-700">Symbol</label>
+                <input
+                  type="text"
+                  value={localSymbol}
+                  onChange={(e) => setLocalSymbol(e.target.value.toUpperCase())}
+                  onBlur={() => onSymbolChange(localSymbol)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              <div className="control-panel-field">
+                <label className="block text-sm font-medium text-gray-700">Interval</label>
+                <select
+                  value={interval}
+                  onChange={(e) => onIntervalChange(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="1 min">1 Minute</option>
+                  <option value="5 mins">5 Minutes</option>
+                  <option value="15 mins">15 Minutes</option>
+                  <option value="1 hour">1 Hour</option>
+                  <option value="1 day">1 Day</option>
+                </select>
+              </div>
+              <div className="control-panel-field">
+                <label className="block text-sm font-medium text-gray-700">Period</label>
+                <select
+                  value={period}
+                  onChange={(e) => onPeriodChange(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="">None</option>
+                  <option value="1 D">1 Day</option>
+                  <option value="5 D">5 Days</option>
+                  <option value="1 M">1 Month</option>
+                  <option value="6 M">6 Months</option>
+                  <option value="1 Y">1 Year</option>
+                </select>
+              </div>
+              <div className="control-panel-field">
+                <label className="block text-sm font-medium text-gray-700">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              <div className="control-panel-field">
+                <label className="block text-sm font-medium text-gray-700">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
 
-        {activeView === 'parameters' && (
-          <div className="control-panel-container">
-            <div className="control-panel-field">
-              <label className="block text-sm font-medium text-gray-700">Symbol</label>
-              <input
-                type="text"
-                value={localSymbol}
-                onChange={(e) => setLocalSymbol(e.target.value.toUpperCase())}
-                onBlur={() => onSymbolChange(localSymbol)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div className="control-panel-field">
-              <label className="block text-sm font-medium text-gray-700">Interval</label>
-              <select
-                value={interval}
-                onChange={(e) => onIntervalChange(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="1 min">1 Minute</option>
-                <option value="5 mins">5 Minutes</option>
-                <option value="15 mins">15 Minutes</option>
-                <option value="1 hour">1 Hour</option>
-                <option value="1 day">1 Day</option>
-              </select>
-            </div>
-            <div className="control-panel-field">
-              <label className="block text-sm font-medium text-gray-700">Period</label>
-              <select
-                value={period}
-                onChange={(e) => onPeriodChange(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="">None</option>
-                <option value="1 D">1 Day</option>
-                <option value="5 D">5 Days</option>
-                <option value="1 M">1 Month</option>
-                <option value="6 M">6 Months</option>
-                <option value="1 Y">1 Year</option>
-              </select>
-            </div>
-            <div className="control-panel-field">
-              <label className="block text-sm font-medium text-gray-700">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div className="control-panel-field">
-              <label className="block text-sm font-medium text-gray-700">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        )}
+          {activeView === 'strategy' && (
+            <StrategySelector 
+              strategies={strategies}
+              onStrategySelect={handleStrategyRegistration}
+              selectedStrategy={selectedStrategy}
+              onStrategyChange={onStrategyChange}
+            />
+          )}
 
-        {activeView === 'strategy' && (
-          <StrategySelector 
-            strategies={strategies}
-            onStrategySelect={handleStrategyRegistration}
-            selectedStrategy={selectedStrategy}
-            onStrategyChange={onStrategyChange}
-          />
-        )}
-
-        <button
-          onClick={handleBacktest}
-          className="w-full bg-custom-orange text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Run Backtest
-        </button>
+          <button
+            onClick={handleBacktest}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Run Backtest
+          </button>
+        </div>
       </div>
       {registrationStatus.type && (
         <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${

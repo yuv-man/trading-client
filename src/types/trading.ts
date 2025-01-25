@@ -118,3 +118,10 @@ export interface StockDataPayload {
       max_drawdown: number;
     }};
   }
+
+  export interface StartTradingPayload {
+    strategy_type: string;
+    symbol: string;
+    interval: string;
+    params: Record<string, number>;
+  }

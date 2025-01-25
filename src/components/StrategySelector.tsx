@@ -97,7 +97,7 @@ export function StrategySelector({ strategies, onStrategySelect, onStrategyChang
         <button
           onClick={handleStrategyRegistration}
           disabled={!selectedStrategy || registrationStatus.type === 'success'}
-          className="mt-6 bg-green-600 text-white py-1 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
+          className="mt-6 bg-green-600 text-white py-1 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 mb-4"
         >
           Register Strategy
         </button>

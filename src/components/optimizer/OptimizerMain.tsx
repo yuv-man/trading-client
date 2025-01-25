@@ -13,6 +13,7 @@ import { createChart, IChartApi } from 'lightweight-charts';
 import { Strategy, Parameter, OptimizationResult } from '../../types/trading';
 import { tradingService } from '../../utils/api';
 import { OptimizerResults } from './OptimizerResults';
+import StepInput from '../common/StepInput';
 
 export function OptimizerMain() {
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | undefined>(undefined);
@@ -245,63 +246,43 @@ export function OptimizerMain() {
                   <Space direction="vertical" className="parameter-input-container" size="small">
                     <Form.Item label="Range" className="mb-1">
                       <Space size="small">
-                        <Input
-                          size="small"
-                          className="parameter-input"
-                          placeholder="Min"
-                          type="number"
+                        <StepInput
                           value={param.min}
-                          style={{ width: '80px' }}
-                          onChange={(e) => {
+                          onChange={(value: number) => {
                             const newParams = [...parameters];
-                            newParams[index].min = Number(e.target.value);
+                            newParams[index].min = value;
                             setParameters(newParams);
                           }}
                         />
-                        <Input
-                          size="small"
-                          className="parameter-input"
-                          placeholder="Max"
-                          type="number"
-                          value={param.max}
-                          style={{ width: '80px' }}
-                          onChange={(e) => {
-                            const newParams = [...parameters];
-                            newParams[index].max = Number(e.target.value);
-                            setParameters(newParams);
-                          }}
-                        />
+                        <StepInput
+                            value={param.max}
+                            onChange={(value: number) => {
+                              const newParams = [...parameters];
+                              newParams[index].max = value;
+                              setParameters(newParams);
+                            }}
+                          />
                       </Space>
                     </Form.Item>
                     <Form.Item label="Step" className="mb-1">
-                      <Input
-                        size="small"
-                        className="parameter-input"
-                        placeholder="Step"
-                        type="number"
+                      <StepInput
                         value={param.step}
-                        style={{ width: '80px' }}
-                        onChange={(e) => {
+                        onChange={(value: number) => {
                           const newParams = [...parameters];
-                          newParams[index].step = Number(e.target.value);
+                          newParams[index].step = value;
                           setParameters(newParams);
                         }}
                       />
                     </Form.Item>
                     <Form.Item label="Initial Guess" className="mb-1">
-                      <Input
-                        size="small"
-                        className="parameter-input"
-                        placeholder="Initial Guess"
-                        type="number"
-                        value={param.initialGuess}
-                        style={{ width: '80px' }}
-                        onChange={(e) => {
-                          const newParams = [...parameters];
-                          newParams[index].initialGuess = Number(e.target.value);
-                          setParameters(newParams);
-                        }}
-                      />
+                    <StepInput
+                            value={param.initialGuess}
+                            onChange={(value: number) => {
+                              const newParams = [...parameters];
+                              newParams[index].initialGuess = value;
+                              setParameters(newParams);
+                            }}
+                          />
                     </Form.Item>
                   </Space>
                 </Card>

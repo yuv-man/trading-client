@@ -22,3 +22,9 @@
     display: flex;
     justify-content: flex-end;
 }
+
+.app-primary-title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}

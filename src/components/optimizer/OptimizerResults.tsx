@@ -32,7 +32,7 @@ export function OptimizerResults({ optimizationResult }: { optimizationResult: O
       title: "Max Drawdown",
       value: optimizationResult.best_performance.data.max_drawdown,
       icon: <TrendingDown size={20} className="text-red-500" />,
-      suffix: "%",
+      prefix: "$",
       precision: 2,
       valueStyle: { color: '#cf1322' }
     },

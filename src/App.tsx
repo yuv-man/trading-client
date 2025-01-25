@@ -93,55 +93,58 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      <nav className="bg-white w-16 min-h-screen shadow-md flex flex-col items-center py-4">
+      <nav className="bg-white w-12 min-h-screen shadow-md flex flex-col items-center py-2 fixed">
         <button
           onClick={() => setActiveView('chart')}
           className={`p-3 rounded-lg mb-4 transition-colors ${
             activeView === 'chart'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-custom-orange text-white'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
           title="Chart"
         >
-          <FaChartBar size={24} />
+          <FaChartBar size={16} />
         </button>
         <button
           onClick={() => setActiveView('strategy')}
           className={`p-3 rounded-lg mb-4 transition-colors ${
             activeView === 'strategy'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-custom-orange text-white'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
           title="Strategy"
         >
-          <FaCode size={24} />
+          <FaCode size={16} />
         </button>
         <button
           onClick={() => setActiveView('optimize')}
           className={`p-3 rounded-lg mb-4 transition-colors ${
             activeView === 'optimize'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-custom-orange text-white'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
           title="Optimize"
         >
-          <FaCog size={24} />
+          <FaCog size={16} />
         </button>
         <button
           onClick={() => setActiveView('live')}
           className={`p-3 rounded-lg mb-4 transition-colors ${
             activeView === 'live'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-custom-orange text-white'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
           title="Live Trading"
         >
-          <FaPlay size={24} />
+          <FaPlay size={16} />
         </button>
       </nav>
-      <div className="flex-1">
+      <div className="flex-1 ml-12">
         <div className="container px-4 py-8">
+          <div className="app-primary-title">
+          <img src="./public/ManeyMaker.png" alt="MoneyMaker" className="w-12 h-12 mb-2" />
           <h1 className="text-3xl font-bold mb-2 font-serif ">MarketMind</h1>
+          </div>
 
           {activeView === 'chart' && (
             <div className="app-main-container">
@@ -192,10 +195,7 @@ export default function App() {
           )}
 
           {activeView === 'live' && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-bold mb-4">Live Trading Dashboard</h2>
               <LiveTradingMain />
-            </div>
           )}
         </div>
       </div>
