@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createChart, IChartApi, UTCTimestamp, Time, SeriesMarker } from 'lightweight-charts';
-import type { ChartData, Trade } from '../types/trading';
+import type { ChartData, Trade } from '../../types/trading';
 import { Settings, Plus, Minus, ChevronDown, ChevronRight, TrendingUp, Clock, BarChart2 } from 'lucide-react';
-import { indicators } from '../utils/indicators';
-import { IndicatorParams } from './chart/IndicatorParams';
-import './css/Chart.css';
-import { ChartIndicator } from './chart/ChartIndicator';
+import { indicators } from '../../utils/indicators';
+import { IndicatorParams } from './IndicatorParams';
+import '../css/Chart.css';
+import { ChartIndicator } from './ChartIndicator';
 
 interface ChartProps {
   data: ChartData[];

@@ -7,7 +7,7 @@ interface BacktestResultsProps {
 }
 
 export function BacktestResults({ results }: BacktestResultsProps) {
-  if (!results || !results.performance) return null;
+  if (!results || !results.metrics) return null;
   console.log(results);
 
   const {
@@ -15,7 +15,7 @@ export function BacktestResults({ results }: BacktestResultsProps) {
     winning_rate = 0,
     total_trades = 0,
     avg_trade = 0
-  } = results.performance.Total;
+  } = results.metrics.Total;
 
 
   return (

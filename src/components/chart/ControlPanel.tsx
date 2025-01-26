@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Settings, Code } from 'lucide-react';
-import type { Strategy } from '../types/trading';
-import './css/ControlPanel.css';
-import { StrategySelector } from './StrategySelector';
-import { tradingService } from '../utils/api';
+import { Settings, Code } from 'lucide-react';
+import type { Strategy } from '../../types/trading';
+import '../css/ControlPanel.css';
+import { StrategySelector } from '../strategy/StrategySelector';
+import { tradingService } from '../../utils/api';
 
 interface ControlPanelProps {
+  strategies: Strategy[];
   onStrategySelect: (strategy: Strategy | null) => void;
   onBacktest: (params: {
     startDate?: string;
@@ -32,12 +33,12 @@ export function ControlPanel({
   onSymbolChange,
   onIntervalChange,
   onPeriodChange,
+  strategies,
 }: ControlPanelProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isStrategyOpen, setIsStrategyOpen] = useState(false);
   const [newStrategy, setNewStrategy] = useState('');
-  const [strategies, setStrategies] = useState([]);
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [registrationStatus, setRegistrationStatus] = useState<{
     message: string;
@@ -146,9 +147,6 @@ export function ControlPanel({
           <button
             onClick={() => {
               setActiveView('strategy');
-              if (!strategies.length) {
-                tradingService.getStrategies().then(setStrategies);
-              }
             }}
             className={`relative flex items-center gap-2 px-6 py-2 min-w-[120px] rounded-t-lg text-sm transition-colors ${
               activeView === 'strategy'

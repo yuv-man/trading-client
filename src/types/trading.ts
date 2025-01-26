@@ -26,7 +26,7 @@ export interface Strategy {
 
 export interface BacktestResult {
   trades: Trade[];
-  performance: {
+  metrics: {
     Total: {
       net_profit: number;
       winning_rate: number;
@@ -124,4 +124,10 @@ export interface StockDataPayload {
     symbol: string;
     interval: string;
     params: Record<string, number>;
+  }
+
+  export interface NavItem {
+    path: string;
+    icon: React.ComponentType<{ size: number }>;
+    title: string;
   }

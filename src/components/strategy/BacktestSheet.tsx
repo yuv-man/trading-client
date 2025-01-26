@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TradesTable } from './TradesTable';
-import { formatDate} from '../../utils/helper';
+import { formatDate } from '../../utils/helper';
 import PerformanceTable from './PerformanceTable';
 
 const BacktestSheet = ({ results, symbol, interval, period, strategy_name }: { results: any, symbol: string, interval: string, period: string, strategy_name?: string }) => {
@@ -85,12 +85,12 @@ const BacktestSheet = ({ results, symbol, interval, period, strategy_name }: { r
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard 
                 title="Strategy Profit" 
-                value={`$${results?.performance?.Total?.net_profit}`}
+                value={`$${results?.metrics?.Total?.net_profit}`}
                 className="bg-green-50"
               />
               <StatCard 
                 title="Strategy Yield" 
-                value={`${results?.performance?.Total?.profit_pct}%`}
+                value={`${results?.metrics?.Total?.profit_pct}%`}
                 className="bg-green-50"
               />
               <StatCard 

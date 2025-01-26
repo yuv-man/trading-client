@@ -1,6 +1,6 @@
 interface PerformanceTableProps {
     results: {
-      performance: {
+      metrics: {
         Total: Record<string, number>;
         Long: Record<string, number>;
         Short: Record<string, number>;
@@ -37,7 +37,7 @@ interface PerformanceTableProps {
     };
   
     const getMetricValue = (data: any, metric: string, type: 'Total' | 'Long' | 'Short') => {
-      const value = results?.performance?.[type]?.[metric];
+      const value = results?.metrics?.[type]?.[metric];
       if (value === undefined) return { value: '0', isNegative: false };
       
       // Format based on metric type
@@ -70,9 +70,9 @@ interface PerformanceTableProps {
       { metric: 'Avg Losing Trade', key: 'avg_losing_trade' },
       { metric: 'Ratio Avg Win/Avg Loss', key: 'win_loss_ratio' }
     ].map((row, index) => {
-      const total = getMetricValue(results?.performance, row.key, 'Total');
-      const long = getMetricValue(results?.performance, row.key, 'Long');
-      const short = getMetricValue(results?.performance, row.key, 'Short');
+      const total = getMetricValue(results?.metrics, row.key, 'Total');
+      const long = getMetricValue(results?.metrics, row.key, 'Long');
+      const short = getMetricValue(results?.metrics, row.key, 'Short');
       
       return {
         key: index,

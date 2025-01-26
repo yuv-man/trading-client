@@ -15,14 +15,13 @@ import { tradingService } from '../../utils/api';
 import { OptimizerResults } from './OptimizerResults';
 import StepInput from '../common/StepInput';
 
-export function OptimizerMain() {
+export function OptimizerMain({ strategies }: { strategies: Strategy[] }) {
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | undefined>(undefined);
   const [parameters, setParameters] = useState<Parameter[]>([]);
   const [loading, setLoading] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [symbol, setSymbol] = useState<string | undefined>(undefined);
   const [interval, setInterval] = useState<string | undefined>(undefined);
   const [period, setPeriod] = useState<string | undefined>(undefined);
@@ -66,21 +65,13 @@ export function OptimizerMain() {
 //     };
 //   }, [optimizationResult]);
 
-  useEffect(() => {
-    const getStrategiesFromServer = async () => {
-      const strategiesFromServer = await tradingService.getStrategies();
-      setStrategies(strategiesFromServer);
-    }
-    getStrategiesFromServer();
-  }, []);
-
   const handleStrategyChange = (strategyType: string) => {
     const strategy = strategies.find(strategy => strategy.type === strategyType);
     setSelectedStrategy(strategy);
     if (strategy?.params) {
       setParameters(Object.entries(strategy.params).map(([name, value]) => ({
         name,
-        min: 0,
+        min: 1,
         max: value * 2,
         step: 1,
         initialGuess: value

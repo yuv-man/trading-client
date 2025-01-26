@@ -162,6 +162,7 @@ class TradingService {
     async runBacktest(payload: BacktestPayload) {
         try {
             const response = await this.api.post('/backtest', payload);
+            console.log(response.data);
             return response.data;
         } catch (error) {
             console.error('Error running backtest:', error);

@@ -39,7 +39,7 @@ interface Position {
   profit: number;
 }
 
-const LiveTrading = () => {
+const LiveTrading = ({ strategies }: { strategies: Strategy[] }) => {
   const [activeInstances, setActiveInstances] = useState<TradingInstance[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState('');
@@ -50,7 +50,6 @@ const LiveTrading = () => {
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
   const [orders, setOrders] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [orderForm, setOrderForm] = useState({
         symbol: 'SPY',
         type: 'BUY',
@@ -187,7 +186,6 @@ const fetchWatchlist = async () => {
 };
 
 const initilizeTradingData = useMemo(() => async () => {
-  tradingService.getStrategies().then(setStrategies);
   await fetchCurrentCapital()
   await fetchWatchlist();
 }, []);
